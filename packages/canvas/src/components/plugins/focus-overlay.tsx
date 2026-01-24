@@ -4,77 +4,8 @@ import { useReactFlow } from "@xyflow/react"
 import { AnimatePresence, motion } from "motion/react"
 import { useCallback, useEffect, useMemo, useState } from "react"
 import { createPortal } from "react-dom"
-import Markdown from "react-markdown"
 import { useFocusModeActions, useFocusModeState } from "../../hooks/use-focus-mode"
-
-function Placeholder({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="flex h-40 w-60 items-center justify-center bg-muted text-muted-foreground">
-      {children}
-    </div>
-  )
-}
-
-interface FocusContentProps {
-  type: string
-  data: Record<string, unknown>
-}
-
-function FocusContent({ type, data }: FocusContentProps) {
-  switch (type) {
-    case "image":
-      return data.imageUrl ? (
-        <img
-          src={data.imageUrl as string}
-          alt={(data.label as string) ?? "Image"}
-          className="h-full w-full object-contain"
-          draggable={false}
-        />
-      ) : (
-        <Placeholder>No image</Placeholder>
-      )
-
-    case "video":
-      return data.videoUrl ? (
-        <video
-          src={data.videoUrl as string}
-          className="h-full w-full object-contain"
-          controls
-          autoPlay
-          muted
-          loop
-          playsInline
-        />
-      ) : (
-        <Placeholder>No video</Placeholder>
-      )
-
-    case "text":
-      return (
-        <div className="prose prose-sm dark:prose-invert h-full w-full max-w-none overflow-auto p-6 text-foreground bg-card">
-          <Markdown
-            components={{
-              a: ({ href, children }) => (
-                <a
-                  href={href}
-                  className="text-primary underline hover:no-underline"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  {children}
-                </a>
-              ),
-            }}
-          >
-            {(data.content as string) || "_Empty_"}
-          </Markdown>
-        </div>
-      )
-
-    default:
-      return <Placeholder>Unsupported node type</Placeholder>
-  }
-}
+import { FocusContent } from "./focus-content"
 
 function FocusOverlayContent() {
   const focusInfo = useFocusModeState()
@@ -145,7 +76,7 @@ function FocusOverlayContent() {
               ease: "easeOut",
             }}
           >
-            <FocusContent type={node.type ?? "unknown"} data={node.data as Record<string, unknown>} />
+            <FocusContent />
           </motion.div>
         </motion.div>
       )}

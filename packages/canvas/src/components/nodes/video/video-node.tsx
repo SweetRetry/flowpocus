@@ -2,7 +2,8 @@
 
 import type { Node, NodeProps } from "@xyflow/react"
 import { memo } from "react"
-import { BaseNodeWrapper } from "./base-node-wrapper"
+import { BaseNodeWrapper } from "../base-node-wrapper"
+import { VideoContent } from "./video-content"
 
 interface VideoNodeData extends Record<string, unknown> {
   label?: string
@@ -19,20 +20,7 @@ function VideoNodeComponent({ id, data, selected, width, height }: NodeProps<Nod
       height={height}
       containerClassName="bg-black"
     >
-      {data.videoUrl ? (
-        <video
-          src={data.videoUrl}
-          className="h-full w-full object-cover pointer-events-none"
-          muted
-          loop
-          playsInline
-          autoPlay
-        />
-      ) : (
-        <div className="flex h-full w-full items-center justify-center bg-secondary text-muted-foreground">
-          No video
-        </div>
-      )}
+      <VideoContent videoUrl={data.videoUrl} />
     </BaseNodeWrapper>
   )
 }

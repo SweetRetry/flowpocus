@@ -1,9 +1,9 @@
 "use client"
 
 import { Handle, NodeResizer, type NodeResizerProps, Position } from "@xyflow/react"
-import { useCallback, useRef, type ReactNode } from "react"
-import { cn } from "../../lib/utils"
+import { type ReactNode, useCallback, useRef } from "react"
 import { useFocusModeActions } from "../../hooks/use-focus-mode"
+import { cn } from "../../lib/utils"
 
 interface ResizeOptions extends Omit<NodeResizerProps, "isVisible"> {
   /** Enable resize functionality */

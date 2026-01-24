@@ -2,7 +2,8 @@
 
 import type { Node, NodeProps } from "@xyflow/react"
 import { memo } from "react"
-import { BaseNodeWrapper } from "./base-node-wrapper"
+import { BaseNodeWrapper } from "../base-node-wrapper"
+import { ImageContent } from "./image-content"
 
 interface ImageNodeData extends Record<string, unknown> {
   label?: string
@@ -19,18 +20,7 @@ function ImageNodeComponent({ id, data, selected, width, height }: NodeProps<Nod
       height={height}
       containerClassName="bg-card"
     >
-      {data.imageUrl ? (
-        <img
-          src={data.imageUrl}
-          alt={data.label ?? "Image"}
-          className="h-full w-full object-cover"
-          draggable={false}
-        />
-      ) : (
-        <div className="flex h-full w-full items-center justify-center bg-muted text-muted-foreground">
-          No image
-        </div>
-      )}
+      <ImageContent imageUrl={data.imageUrl} label={data.label} />
     </BaseNodeWrapper>
   )
 }

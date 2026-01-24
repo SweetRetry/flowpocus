@@ -1,4 +1,4 @@
 export { BaseNodeWrapper } from "./base-node-wrapper"
-export { ImageNode } from "./image-node"
-export { TextNode } from "./text-node"
-export { VideoNode } from "./video-node"
+export { FocusImageContent, ImageContent, ImageNode } from "./image"
+export { FocusTextContent, TextContent, TextNode } from "./text"
+export { FocusVideoContent, VideoContent, VideoNode } from "./video"

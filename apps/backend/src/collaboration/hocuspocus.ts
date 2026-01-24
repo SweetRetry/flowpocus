@@ -341,32 +341,3 @@ export async function shutdownHocuspocus(): Promise<void> {
     hocuspocus = null
   }
 }
-
-/**
- * Inject updates from server-side (AI agent integration)
- * Implements "Server-as-a-Peer" pattern for AI-assisted collaboration
- */
-export async function injectServerUpdate(
-  canvasId: string,
-  updater: (doc: Y.Doc) => void,
-  origin = "server"
-): Promise<void> {
-  const server = getHocuspocus()
-  if (!server) {
-    throw new Error("Hocuspocus not initialized")
-  }
-
-  const documents = server.documents
-  const document = documents.get(canvasId)
-
-  if (!document) {
-    throw new Error(`Document ${canvasId} not loaded in memory`)
-  }
-
-  // Hocuspocus Document extends Y.Doc, so we can use it directly
-  document.transact(() => {
-    updater(document)
-  }, origin)
-
-  logger.info({ canvasId, origin }, "Server-side update injected")
-}

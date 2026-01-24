@@ -1,37 +1,57 @@
 {
   "$schema": "https://unpkg.com/knip@5/schema.json",
   "workspaces": {
-    ".": {
-      "entry": [],
-      "project": ["*.{js,ts}"]
-    },
+    ".": {},
     "apps/web": {
-      "entry": ["app/**/*.{ts,tsx}", "components/**/*.{ts,tsx}"],
+      "entry": ["app/**/*.{ts,tsx}", "components/**/*.{ts,tsx}", "lib/**/*.ts", "hooks/**/*.ts"],
       "project": ["**/*.{ts,tsx}"],
       "ignore": [".next/**", "out/**"]
     },
     "apps/backend": {
-      "entry": ["src/index.ts"],
       "project": ["src/**/*.ts"]
-    },
-    "apps/tauri": {
-      "entry": [],
-      "project": [],
-      "ignore": ["src-tauri/**"]
     },
     "packages/ui": {
-      "entry": ["src/**/*.{ts,tsx}"],
+      "entry": ["src/components/*.tsx", "src/lib/*.ts"],
       "project": ["src/**/*.{ts,tsx}"]
     },
-    "packages/api-client": {
-      "entry": ["src/index.ts"],
+    "packages/canvas": {
+      "entry": [
+        "src/components/**/*.tsx",
+        "src/hooks/**/*.ts",
+        "src/lib/*.ts",
+        "src/types/*.ts",
+        "src/stores/*.ts"
+      ],
+      "project": ["src/**/*.{ts,tsx}"]
+    },
+    "packages/database": {
       "project": ["src/**/*.ts"]
     },
-    "packages/typescript-config": {
-      "entry": [],
-      "project": ["*.json"]
-    }
+    "packages/typescript-config": {}
   },
-  "ignore": ["**/node_modules/**", "**/.next/**", "**/dist/**", "**/out/**", "**/target/**"],
-  "ignoreDependencies": ["@types/*"]
+  "ignore": [
+    "**/node_modules/**",
+    "**/.next/**",
+    "**/dist/**",
+    "**/out/**",
+    "**/target/**",
+    "**/*.css"
+  ],
+  "ignoreDependencies": [
+    "@types/.+",
+    "@workspace/typescript-config",
+    "@tailwindcss/postcss",
+    "tailwindcss",
+    "postcss",
+    "postcss-load-config",
+    "@turbo/gen",
+    "react-dom"
+  ],
+  "ignoreExportsUsedInFile": {
+    "interface": true,
+    "type": true
+  },
+  "rules": {
+    "unresolved": "off"
+  }
 }

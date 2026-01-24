@@ -17,22 +17,6 @@ const updateCanvasSchema = z.object({
   description: z.string().optional(),
 })
 
-const canvasResponseSchema = z.object({
-  id: z.string(),
-  name: z.string(),
-  description: z.string().nullable(),
-  nodes: z.array(z.any()),
-  edges: z.array(z.any()),
-  version: z.number(),
-  isPublic: z.boolean(),
-  createdAt: z.string(),
-  updatedAt: z.string(),
-})
-
-export type CreateCanvasRequest = z.infer<typeof createCanvasSchema>
-export type UpdateCanvasRequest = z.infer<typeof updateCanvasSchema>
-export type CanvasResponse = z.infer<typeof canvasResponseSchema>
-
 export const canvasRoutes = new Hono()
   /**
    * List all canvases (with pagination)

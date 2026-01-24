@@ -21,7 +21,6 @@
     "@hono/node-server": "^1.19.9",
     "@hono/node-ws": "^1.1.1",
     "@hono/swagger-ui": "^0.5.3",
-    "@hono/zod-openapi": "^1.2.0",
     "@workspace/database": "workspace:*",
     "drizzle-orm": "^0.45.1",
     "hono": "^4.11.5",

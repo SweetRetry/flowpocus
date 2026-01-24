@@ -30,6 +30,9 @@ jobs:
       - name: Run Biome lint
         run: pnpm lint
 
+      - name: Run Knip (unused code check)
+        run: pnpm knip
+
   typecheck:
     name: Type Check
     runs-on: ubuntu-latest

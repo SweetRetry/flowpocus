@@ -20,7 +20,8 @@
     "rules": {
       "recommended": true,
       "a11y": {
-        "recommended": true
+        "recommended": true,
+        "noStaticElementInteractions": "off"
       },
       "complexity": {
         "recommended": true

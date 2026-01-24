@@ -10,11 +10,12 @@ interface TextNodeData extends Record<string, unknown> {
   content?: string
 }
 
-function TextNodeComponent({ data, selected, width, height }: NodeProps<Node<TextNodeData>>) {
+function TextNodeComponent({ id, data, selected, width, height }: NodeProps<Node<TextNodeData>>) {
   const content = data.content ?? ""
 
   return (
     <BaseNodeWrapper
+      nodeId={id}
       selected={selected}
       label={data.label}
       width={width}

@@ -22,7 +22,12 @@ import { useCallback, useRef } from "react"
 import "@xyflow/react/dist/style.css"
 
 import { ImageNode, TextNode, VideoNode } from "@workspace/canvas/components/nodes"
-import { ConnectionStatusBadge, Toolbar, UserCursors } from "@workspace/canvas/components/plugins"
+import {
+  ConnectionStatusBadge,
+  FocusOverlay,
+  Toolbar,
+  UserCursors,
+} from "@workspace/canvas/components/plugins"
 import { useKeyboardShortcuts } from "@workspace/canvas/hooks"
 import { createImageNode, createTextNode, createVideoNode } from "@workspace/canvas/lib"
 import { useYjsCollaboration } from "@/hooks/collaboration"
@@ -211,6 +216,7 @@ export function CanvasEditor({
             return selectedByOthers ? getCssVar("--warning") : getCssVar("--secondary")
           }}
         />
+        <FocusOverlay />
       </ReactFlow>
     </div>
   )

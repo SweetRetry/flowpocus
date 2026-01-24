@@ -9,9 +9,10 @@ interface ImageNodeData extends Record<string, unknown> {
   imageUrl?: string
 }
 
-function ImageNodeComponent({ data, selected, width, height }: NodeProps<Node<ImageNodeData>>) {
+function ImageNodeComponent({ id, data, selected, width, height }: NodeProps<Node<ImageNodeData>>) {
   return (
     <BaseNodeWrapper
+      nodeId={id}
       selected={selected}
       label={data.label}
       width={width}

@@ -1,8 +1,9 @@
 "use client"
 
 import { Handle, NodeResizer, type NodeResizerProps, Position } from "@xyflow/react"
-import type { ReactNode } from "react"
+import { useCallback, useRef, type ReactNode } from "react"
 import { cn } from "../../lib/utils"
+import { useFocusModeActions } from "../../hooks/use-focus-mode"
 
 interface ResizeOptions extends Omit<NodeResizerProps, "isVisible"> {
   /** Enable resize functionality */
@@ -10,6 +11,8 @@ interface ResizeOptions extends Omit<NodeResizerProps, "isVisible"> {
 }
 
 interface BaseNodeWrapperProps {
+  /** Node ID */
+  nodeId: string
   /** Whether the node is currently selected */
   selected: boolean
   /** Optional label displayed above the node */
@@ -35,6 +38,7 @@ const defaultResizeOptions: ResizeOptions = {
 }
 
 export function BaseNodeWrapper({
+  nodeId,
   selected,
   label,
   width,
@@ -43,8 +47,21 @@ export function BaseNodeWrapper({
   resizeOptions = defaultResizeOptions,
   children,
 }: BaseNodeWrapperProps) {
+  const containerRef = useRef<HTMLDivElement>(null)
+  const { enterFocusMode } = useFocusModeActions()
+
   const mergedResizeOptions =
     resizeOptions === false ? null : { ...defaultResizeOptions, ...resizeOptions }
+
+  const handleDoubleClick = useCallback(() => {
+    if (!containerRef.current) return
+    const rect = containerRef.current.getBoundingClientRect()
+    enterFocusMode({
+      nodeId,
+      startX: rect.left + rect.width / 2,
+      startY: rect.top + rect.height / 2,
+    })
+  }, [nodeId, enterFocusMode])
 
   return (
     <div className="relative h-full w-full">
@@ -57,8 +74,10 @@ export function BaseNodeWrapper({
       )}
 
       <div
+        ref={containerRef}
+        onDoubleClick={handleDoubleClick}
         className={cn(
-          "overflow-hidden rounded-lg border-2 shadow-sm transition-shadow",
+          "overflow-hidden rounded-lg border-2 shadow-sm transition-shadow cursor-pointer",
           selected ? "border-ring shadow-md" : "border-border",
           containerClassName
         )}

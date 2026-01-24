@@ -9,9 +9,10 @@ interface VideoNodeData extends Record<string, unknown> {
   videoUrl?: string
 }
 
-function VideoNodeComponent({ data, selected, width, height }: NodeProps<Node<VideoNodeData>>) {
+function VideoNodeComponent({ id, data, selected, width, height }: NodeProps<Node<VideoNodeData>>) {
   return (
     <BaseNodeWrapper
+      nodeId={id}
       selected={selected}
       label={data.label}
       width={width}
@@ -21,11 +22,11 @@ function VideoNodeComponent({ data, selected, width, height }: NodeProps<Node<Vi
       {data.videoUrl ? (
         <video
           src={data.videoUrl}
-          className="h-full w-full object-cover"
-          controls
+          className="h-full w-full object-cover pointer-events-none"
           muted
           loop
           playsInline
+          autoPlay
         />
       ) : (
         <div className="flex h-full w-full items-center justify-center bg-secondary text-muted-foreground">

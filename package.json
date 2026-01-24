@@ -1,7 +1,28 @@
 {
   "name": "flowpocus",
   "version": "0.0.1",
+  "description": "Real-time collaborative canvas editor built with React Flow and Yjs",
   "private": true,
+  "license": "MIT",
+  "author": "Flowpocus Contributors",
+  "homepage": "https://github.com/SweetRetry/flowpocus#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/SweetRetry/flowpocus.git"
+  },
+  "bugs": {
+    "url": "https://github.com/SweetRetry/flowpocus/issues"
+  },
+  "keywords": [
+    "canvas",
+    "collaboration",
+    "react-flow",
+    "yjs",
+    "crdt",
+    "real-time",
+    "editor",
+    "whiteboard"
+  ],
   "scripts": {
     "build": "turbo build",
     "dev": "turbo dev",

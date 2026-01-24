@@ -1,8 +1,10 @@
 {
   "name": "web",
   "version": "0.0.1",
+  "description": "Next.js frontend for Flowpocus collaborative canvas editor",
   "type": "module",
   "private": true,
+  "license": "MIT",
   "scripts": {
     "dev": "next dev --turbopack",
     "build": "next build",

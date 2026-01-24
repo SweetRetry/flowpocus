@@ -1,20 +1,30 @@
 {
   "name": "@workspace/canvas",
-  "version": "0.0.0",
+  "version": "0.0.1",
+  "description": "React Flow canvas components and hooks for Flowpocus",
   "type": "module",
   "private": true,
+  "license": "MIT",
   "scripts": {
     "lint": "biome check .",
     "lint:fix": "biome check --write ."
+  },
+  "exports": {
+    "./lib/*": "./src/lib/*.ts",
+    "./components/*": "./src/components/*.tsx",
+    "./components/nodes/*": "./src/components/nodes/*.tsx",
+    "./components/plugins/*": "./src/components/plugins/*.tsx",
+    "./hooks/*": "./src/hooks/*.ts",
+    "./types/*": "./src/types/*.ts"
   },
   "dependencies": {
     "@xyflow/react": "^12.10.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "lucide-react": "^0.475.0",
+    "motion": "^12.0.0",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
-    "motion": "^12.0.0",
     "react-markdown": "^10.1.0",
     "tailwind-merge": "^3.3.1",
     "zustand": "^5.0.0"
@@ -29,13 +39,5 @@
   },
   "peerDependencies": {
     "@workspace/ui": "workspace:*"
-  },
-  "exports": {
-    "./lib/*": "./src/lib/*.ts",
-    "./components/*": "./src/components/*.tsx",
-    "./components/nodes/*": "./src/components/nodes/*.tsx",
-    "./components/plugins/*": "./src/components/plugins/*.tsx",
-    "./hooks/*": "./src/hooks/*.ts",
-    "./types/*": "./src/types/*.ts"
   }
 }

@@ -1,8 +1,10 @@
 {
   "name": "@workspace/backend",
   "version": "0.0.1",
+  "description": "Hono + Hocuspocus backend for Flowpocus real-time collaboration",
   "type": "module",
   "private": true,
+  "license": "MIT",
   "exports": {
     ".": "./src/index.ts"
   },

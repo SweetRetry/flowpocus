@@ -4,9 +4,17 @@
 node_modules
 .pnp
 .pnp.js
+.pnp.cjs
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/sdks
+!.yarn/versions
 
 # Local env files
 .env
+.env*.local
 .env.local
 .env.development.local
 .env.test.local
@@ -14,6 +22,7 @@ node_modules
 
 # Testing
 coverage
+.nyc_output
 
 # Turbo
 .turbo
@@ -26,14 +35,39 @@ coverage
 out/
 build
 dist
+*.tsbuildinfo
 
+# Database
+*.db
+*.db-journal
+*.sqlite
+*.sqlite3
 
 # Debug
 npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
 
-# Misc
+# Editor directories and files
+.idea
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+*.swp
+*~
+
+# OS files
 .DS_Store
+Thumbs.db
+
+# Secrets
 *.pem
+*.key
+*.p12
 
 # Tauri
 **/src-tauri/target

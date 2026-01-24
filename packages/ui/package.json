@@ -1,11 +1,20 @@
 {
   "name": "@workspace/ui",
-  "version": "0.0.0",
+  "version": "0.0.1",
+  "description": "Shared UI components based on shadcn/ui for Flowpocus",
   "type": "module",
   "private": true,
+  "license": "MIT",
   "scripts": {
     "lint": "biome check .",
     "lint:fix": "biome check --write ."
+  },
+  "exports": {
+    "./globals.css": "./src/styles/globals.css",
+    "./postcss.config": "./postcss.config.mjs",
+    "./lib/*": "./src/lib/*.ts",
+    "./components/*": "./src/components/*.tsx",
+    "./hooks/*": "./src/hooks/*.ts"
   },
   "dependencies": {
     "@radix-ui/react-slot": "^1.2.3",
@@ -28,12 +37,5 @@
     "@workspace/typescript-config": "workspace:*",
     "tailwindcss": "^4.1.11",
     "typescript": "^5.9.2"
-  },
-  "exports": {
-    "./globals.css": "./src/styles/globals.css",
-    "./postcss.config": "./postcss.config.mjs",
-    "./lib/*": "./src/lib/*.ts",
-    "./components/*": "./src/components/*.tsx",
-    "./hooks/*": "./src/hooks/*.ts"
   }
 }

@@ -74,7 +74,7 @@ flowpocus/
 │   ├── canvas/             # React Flow components & hooks
 │   ├── ui/                 # shadcn/ui components
 │   ├── database/           # Drizzle ORM + SQLite
-│   └── api-client/         # Type-safe API client
+│   └── typescript-config/  # Shared TypeScript configs
 └── ...
 ```
 

@@ -1,8 +1,10 @@
 {
   "name": "@workspace/database",
   "version": "0.0.1",
-  "private": true,
+  "description": "Database schema and client using Drizzle ORM with SQLite",
   "type": "module",
+  "private": true,
+  "license": "MIT",
   "exports": {
     ".": {
       "import": "./src/index.ts",

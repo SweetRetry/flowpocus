@@ -21,15 +21,16 @@ import {
 import { useCallback, useRef } from "react"
 import "@xyflow/react/dist/style.css"
 
-import { ImageNode, VideoNode } from "@workspace/canvas/components/nodes"
+import { ImageNode, TextNode, VideoNode } from "@workspace/canvas/components/nodes"
 import { ConnectionStatusBadge, Toolbar, UserCursors } from "@workspace/canvas/components/plugins"
 import { useKeyboardShortcuts } from "@workspace/canvas/hooks"
-import { createImageNode, createVideoNode } from "@workspace/canvas/lib"
+import { createImageNode, createTextNode, createVideoNode } from "@workspace/canvas/lib"
 import { useYjsCollaboration } from "@/hooks/collaboration"
 
 // Custom node types
 const nodeTypes: NodeTypes = {
   image: ImageNode,
+  text: TextNode,
   video: VideoNode,
 }
 
@@ -153,6 +154,14 @@ export function CanvasEditor({
     updateNodes([...nodes, node])
   }, [nodes, updateNodes, getCenterPosition])
 
+  const handleAddTextNode = useCallback(() => {
+    const node = createTextNode({
+      position: getCenterPosition(),
+      label: `Text ${nodes.length + 1}`,
+    })
+    updateNodes([...nodes, node])
+  }, [nodes, updateNodes, getCenterPosition])
+
   return (
     <div className="relative h-full w-full">
       <div className="absolute left-4 top-4 z-10">
@@ -163,6 +172,7 @@ export function CanvasEditor({
           onRedo={redo}
           onAddImageNode={handleAddImageNode}
           onAddVideoNode={handleAddVideoNode}
+          onAddTextNode={handleAddTextNode}
         />
       </div>
 

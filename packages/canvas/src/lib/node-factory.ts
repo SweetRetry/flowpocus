@@ -67,3 +67,30 @@ export function createVideoNode(options: CreateVideoNodeOptions): Node {
     },
   }
 }
+
+export interface CreateTextNodeOptions {
+  position: { x: number; y: number }
+  label?: string
+  content?: string
+  width?: number
+  height?: number
+}
+
+/**
+ * Create a text node with markdown support
+ */
+export function createTextNode(options: CreateTextNodeOptions): Node {
+  const { position, label, content = "", width = 240, height = 160 } = options
+
+  return {
+    id: generateNodeId("text"),
+    type: "text",
+    position,
+    width,
+    height,
+    data: {
+      label: label ?? "Text",
+      content,
+    },
+  }
+}

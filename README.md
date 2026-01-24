@@ -1,30 +1,108 @@
-# FlowPocus
+# Flowpocus
 
-Real-time collaborative node editor powered by [xyflow/react](https://reactflow.dev/) and [hocuspocus](https://hocuspocus.dev/).
+Real-time collaborative canvas editor built with React Flow and Yjs.
+
+[![CI](https://github.com/SweetRetry/flowpocus/actions/workflows/ci.yml/badge.svg)](https://github.com/SweetRetry/flowpocus/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
+## Features
+
+- **Real-time Collaboration** - Multiple users can edit the same canvas simultaneously
+- **Conflict-free Sync** - Powered by Yjs CRDT for seamless concurrent editing
+- **User Presence** - See other users' cursors and selections in real-time
+- **Scoped Undo/Redo** - Each user has independent undo history
+- **Node Types** - Image and video nodes with more to come
+- **Responsive UI** - Built with shadcn/ui and Tailwind CSS
 
 ## Tech Stack
 
 | Layer | Technology |
 |-------|------------|
-| Node Editor | [xyflow/react](https://reactflow.dev/) |
-| Collaboration | [hocuspocus](https://hocuspocus.dev/) |
-| CRDT | [Yjs](https://yjs.dev/) |
-| Frontend | [Next.js](https://nextjs.org/) |
+| Node Editor | [React Flow](https://reactflow.dev/) |
+| Real-time Sync | [Yjs](https://yjs.dev/) + [Hocuspocus](https://hocuspocus.dev/) |
+| Frontend | [Next.js](https://nextjs.org/) 16 + React 19 |
+| Backend | [Hono](https://hono.dev/) + [Bun](https://bun.sh/) |
+| Database | SQLite + [Drizzle ORM](https://orm.drizzle.team/) |
 | UI Components | [shadcn/ui](https://ui.shadcn.com/) |
-| Styling | [Tailwind CSS](https://tailwindcss.com/) |
+| Styling | [Tailwind CSS](https://tailwindcss.com/) v4 |
 | Build System | [Turborepo](https://turbo.build/repo) |
 | Package Manager | [pnpm](https://pnpm.io/) |
 
 ## Getting Started
 
+### Prerequisites
+
+- Node.js >= 20
+- pnpm >= 10
+- Bun (for backend)
+
+### Installation
+
 ```bash
+# Clone the repository
+git clone https://github.com/SweetRetry/flowpocus.git
+cd flowpocus
+
 # Install dependencies
 pnpm install
 
-# Start development
-pnpm dev
+# Initialize database
+pnpm db:push
 ```
+
+### Development
+
+```bash
+# Start all services (frontend + backend)
+pnpm dev
+
+# Or start individually
+pnpm dev:web      # Frontend at http://localhost:3000
+pnpm dev:backend  # Backend at http://localhost:3001
+```
+
+Visit `http://localhost:3000/canvas/{any-id}` to start collaborating.
+
+## Project Structure
+
+```
+flowpocus/
+├── apps/
+│   ├── web/                # Next.js frontend
+│   └── backend/            # Hono + Hocuspocus backend
+├── packages/
+│   ├── canvas/             # React Flow components & hooks
+│   ├── ui/                 # shadcn/ui components
+│   ├── database/           # Drizzle ORM + SQLite
+│   └── api-client/         # Type-safe API client
+└── ...
+```
+
+## Scripts
+
+| Command | Description |
+|---------|-------------|
+| `pnpm dev` | Start development servers |
+| `pnpm build` | Build all packages |
+| `pnpm lint` | Run Biome linter |
+| `pnpm typecheck` | Run TypeScript type checking |
+| `pnpm db:push` | Push database schema |
+| `pnpm db:studio` | Open Drizzle Studio |
+
+## Architecture
+
+See [ARCHITECTURE.md](./ARCHITECTURE.md) for detailed technical documentation.
+
+## Contributing
+
+Contributions are welcome! Please read our contributing guidelines before submitting a PR.
+
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
 
 ## License
 
-MIT
+MIT License - see [LICENSE](./LICENSE) for details.

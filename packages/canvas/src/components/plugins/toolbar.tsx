@@ -1,7 +1,7 @@
 "use client"
 
 import { Button } from "@workspace/ui/components/button"
-import { ImageIcon, Redo2Icon, Undo2Icon, VideoIcon } from "lucide-react"
+import { ImageIcon, Redo2Icon, TypeIcon, Undo2Icon, VideoIcon } from "lucide-react"
 
 interface ToolbarProps {
   canUndo: boolean
@@ -10,6 +10,7 @@ interface ToolbarProps {
   onRedo: () => void
   onAddImageNode: () => void
   onAddVideoNode: () => void
+  onAddTextNode: () => void
 }
 
 /**
@@ -22,6 +23,7 @@ export function Toolbar({
   onRedo,
   onAddImageNode,
   onAddVideoNode,
+  onAddTextNode,
 }: ToolbarProps) {
   return (
     <div className="flex items-center gap-1 rounded-lg border bg-background p-1 shadow-sm">
@@ -57,6 +59,11 @@ export function Toolbar({
       <Button variant="ghost" size="sm" onClick={onAddVideoNode} title="Add Video">
         <VideoIcon className="size-4" />
         Video
+      </Button>
+
+      <Button variant="ghost" size="sm" onClick={onAddTextNode} title="Add Text">
+        <TypeIcon className="size-4" />
+        Text
       </Button>
     </div>
   )

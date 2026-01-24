@@ -190,9 +190,10 @@ export interface MockSession {
 export function getMockSession(mockUserParam?: string | null): MockSession {
   let user: User & { color: string }
 
-  if (mockUserParam && MOCK_USERS[mockUserParam.toLowerCase()]) {
+  const normalizedParam = mockUserParam?.toLowerCase()
+  if (normalizedParam && MOCK_USERS[normalizedParam]) {
     // Use predefined mock user
-    user = MOCK_USERS[mockUserParam.toLowerCase()]!
+    user = MOCK_USERS[normalizedParam]
   } else if (mockUserParam) {
     // Custom mock user name provided
     const id = `mock-${mockUserParam.toLowerCase()}-${mockUserParam.length}`

@@ -1,7 +1,7 @@
 "use client"
 
 import { useRouter, useSearchParams } from "next/navigation"
-import { useEffect, useMemo } from "react"
+import { Suspense, useEffect, useMemo } from "react"
 import { CanvasEditor } from "@/components/canvas/canvas-editor"
 import { getMockSession } from "@/lib/auth"
 
@@ -15,12 +15,9 @@ function generateUserId(): string {
 }
 
 /**
- * Canvas editor page - open source showcase
- *
- * Each visit generates a new random userId and adds it to the URL.
- * This allows testing multi-user collaboration in different tabs.
+ * Canvas page content - uses useSearchParams
  */
-export default function CanvasPage() {
+function CanvasPageContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const userParam = searchParams.get("user")
@@ -50,5 +47,19 @@ export default function CanvasPage() {
         user={session.user}
       />
     </div>
+  )
+}
+
+/**
+ * Canvas editor page - open source showcase
+ *
+ * Each visit generates a new random userId and adds it to the URL.
+ * This allows testing multi-user collaboration in different tabs.
+ */
+export default function CanvasPage() {
+  return (
+    <Suspense fallback={null}>
+      <CanvasPageContent />
+    </Suspense>
   )
 }

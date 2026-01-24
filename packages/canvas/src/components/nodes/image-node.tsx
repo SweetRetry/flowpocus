@@ -1,9 +1,8 @@
 "use client"
 
 import type { Node, NodeProps } from "@xyflow/react"
-import { Handle, Position } from "@xyflow/react"
 import { memo } from "react"
-import { cn } from "../../lib/utils"
+import { BaseNodeWrapper } from "./base-node-wrapper"
 
 interface ImageNodeData extends Record<string, unknown> {
   label?: string
@@ -12,40 +11,26 @@ interface ImageNodeData extends Record<string, unknown> {
 
 function ImageNodeComponent({ data, selected, width, height }: NodeProps<Node<ImageNodeData>>) {
   return (
-    <div className="relative">
-      {data.label && (
-        <div className="absolute -top-6 left-0 truncate text-xs text-muted-foreground">
-          {data.label}
+    <BaseNodeWrapper
+      selected={selected}
+      label={data.label}
+      width={width}
+      height={height}
+      containerClassName="bg-card"
+    >
+      {data.imageUrl ? (
+        <img
+          src={data.imageUrl}
+          alt={data.label ?? "Image"}
+          className="h-full w-full object-cover"
+          draggable={false}
+        />
+      ) : (
+        <div className="flex h-full w-full items-center justify-center bg-muted text-muted-foreground">
+          No image
         </div>
       )}
-
-      <div
-        className={cn(
-          "overflow-hidden rounded-lg border-2 bg-card shadow-canvas-node transition-shadow",
-          selected
-            ? "border-canvas-node-selected shadow-canvas-node-selected"
-            : "border-canvas-node"
-        )}
-        style={{ width, height }}
-      >
-        <Handle type="target" position={Position.Left} className="!bg-canvas-handle" />
-
-        {data.imageUrl ? (
-          <img
-            src={data.imageUrl}
-            alt={data.label ?? "Image"}
-            className="h-full w-full object-cover"
-            draggable={false}
-          />
-        ) : (
-          <div className="flex h-full w-full items-center justify-center bg-muted text-muted-foreground">
-            No image
-          </div>
-        )}
-
-        <Handle type="source" position={Position.Right} className="!bg-canvas-handle" />
-      </div>
-    </div>
+    </BaseNodeWrapper>
   )
 }
 

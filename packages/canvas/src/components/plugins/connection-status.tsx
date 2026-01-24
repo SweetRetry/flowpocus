@@ -1,7 +1,7 @@
 "use client"
 
-import { cn } from "@workspace/ui/lib/utils"
-import type { ConnectionStatus } from "@/hooks/collaboration"
+import { cn } from "../../lib/utils"
+import type { ConnectionStatus } from "../../types/collaboration"
 
 interface ConnectionStatusBadgeProps {
   status: ConnectionStatus

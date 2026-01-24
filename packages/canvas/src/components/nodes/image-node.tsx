@@ -3,6 +3,7 @@
 import type { Node, NodeProps } from "@xyflow/react"
 import { Handle, Position } from "@xyflow/react"
 import { memo } from "react"
+import { cn } from "../../lib/utils"
 
 interface ImageNodeData extends Record<string, unknown> {
   label?: string
@@ -11,9 +12,6 @@ interface ImageNodeData extends Record<string, unknown> {
   height?: number
 }
 
-/**
- * Image node component for displaying Unsplash images
- */
 function ImageNodeComponent({ data, selected }: NodeProps<Node<ImageNodeData>>) {
   const width = data.width ?? 200
   const height = data.height ?? 150
@@ -21,18 +19,21 @@ function ImageNodeComponent({ data, selected }: NodeProps<Node<ImageNodeData>>) 
   return (
     <div className="relative">
       {data.label && (
-        <div className="absolute -top-6 left-0 truncate text-xs text-zinc-600 dark:text-zinc-400">
+        <div className="absolute -top-6 left-0 truncate text-xs text-muted-foreground">
           {data.label}
         </div>
       )}
 
       <div
-        className={`overflow-hidden rounded-lg border-2 bg-white shadow-md transition-shadow ${
-          selected ? "border-blue-500 shadow-lg" : "border-zinc-200"
-        }`}
+        className={cn(
+          "overflow-hidden rounded-lg border-2 bg-card shadow-canvas-node transition-shadow",
+          selected
+            ? "border-canvas-node-selected shadow-canvas-node-selected"
+            : "border-canvas-node"
+        )}
         style={{ width, height }}
       >
-        <Handle type="target" position={Position.Left} className="!bg-zinc-400" />
+        <Handle type="target" position={Position.Left} className="!bg-canvas-handle" />
 
         {data.imageUrl ? (
           <img
@@ -42,12 +43,12 @@ function ImageNodeComponent({ data, selected }: NodeProps<Node<ImageNodeData>>) 
             draggable={false}
           />
         ) : (
-          <div className="flex h-full w-full items-center justify-center bg-zinc-100 text-zinc-400">
+          <div className="flex h-full w-full items-center justify-center bg-muted text-muted-foreground">
             No image
           </div>
         )}
 
-        <Handle type="source" position={Position.Right} className="!bg-zinc-400" />
+        <Handle type="source" position={Position.Right} className="!bg-canvas-handle" />
       </div>
     </div>
   )

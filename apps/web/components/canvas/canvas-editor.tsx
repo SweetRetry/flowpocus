@@ -6,6 +6,7 @@ import {
   applyNodeChanges,
   Background,
   Controls,
+  type Edge,
   MiniMap,
   type Node,
   type NodeTypes,
@@ -20,14 +21,11 @@ import {
 import { useCallback, useRef } from "react"
 import "@xyflow/react/dist/style.css"
 
+import { ImageNode, VideoNode } from "@workspace/canvas/components/nodes"
+import { ConnectionStatusBadge, Toolbar, UserCursors } from "@workspace/canvas/components/plugins"
+import { useKeyboardShortcuts } from "@workspace/canvas/hooks"
+import { createImageNode, createVideoNode } from "@workspace/canvas/lib"
 import { useYjsCollaboration } from "@/hooks/collaboration"
-import { useKeyboardShortcuts } from "@/hooks/use-keyboard-shortcuts"
-import { createImageNode, createVideoNode } from "@/lib/node-factory"
-import { ImageNode } from "./nodes/image-node"
-import { VideoNode } from "./nodes/video-node"
-import { ConnectionStatusBadge } from "./plugins/connection-status"
-import { Toolbar } from "./plugins/toolbar"
-import { UserCursors } from "./plugins/user-cursors"
 
 // Custom node types
 const nodeTypes: NodeTypes = {
@@ -35,11 +33,11 @@ const nodeTypes: NodeTypes = {
   video: VideoNode,
 }
 
-// MiniMap theme colors
-const MINIMAP_COLORS = {
-  selected: "oklch(0.681 0.162 75.834)",
-  default: "oklch(0.97 0 0)",
-} as const
+// Helper to get CSS variable value at runtime
+const getCssVar = (name: string) =>
+  typeof document !== "undefined"
+    ? getComputedStyle(document.documentElement).getPropertyValue(name).trim()
+    : ""
 
 interface CanvasEditorProps {
   canvasId: string
@@ -106,7 +104,7 @@ export function CanvasEditor({
 
   const onConnect: OnConnect = useCallback(
     (connection) => {
-      const newEdge = {
+      const newEdge: Edge = {
         ...connection,
         id: `edge-${Date.now()}-${Math.random().toString(36).slice(2)}`,
       }
@@ -200,7 +198,7 @@ export function CanvasEditor({
         <MiniMap
           nodeColor={(node) => {
             const selectedByOthers = users.some((u) => u.selection?.includes(node.id))
-            return selectedByOthers ? MINIMAP_COLORS.selected : MINIMAP_COLORS.default
+            return selectedByOthers ? getCssVar("--warning") : getCssVar("--secondary")
           }}
         />
       </ReactFlow>

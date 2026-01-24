@@ -2,6 +2,7 @@
 @import "tw-animate-css";
 
 @source "../../../apps/**/*.{ts,tsx}";
+@source "../../../canvas/src/**/*.{ts,tsx}";
 @source "../../../components/**/*.{ts,tsx}";
 @source "../**/*.{ts,tsx}";
 
@@ -136,4 +137,33 @@
   body {
     @apply bg-background text-foreground;
   }
+}
+
+/* React Flow theming - override defaults with design tokens */
+.react-flow {
+  --xy-node-background-color-default: var(--card);
+  --xy-node-border-color-default: var(--border);
+  --xy-node-border-radius-default: var(--radius);
+  --xy-node-boxshadow-hover-default: 0 1px 3px oklch(0 0 0 / 0.1);
+  --xy-node-boxshadow-selected-default: 0 4px 12px oklch(0 0 0 / 0.15);
+
+  --xy-handle-background-color-default: var(--muted-foreground);
+  --xy-handle-border-color-default: var(--background);
+
+  --xy-edge-stroke-default: var(--border);
+  --xy-edge-stroke-selected-default: var(--primary);
+
+  --xy-minimap-background-color-default: var(--card);
+  --xy-minimap-node-background-color-default: var(--secondary);
+
+  --xy-controls-button-background-color-default: var(--card);
+  --xy-controls-button-background-color-hover-default: var(--accent);
+  --xy-controls-button-border-color-default: var(--border);
+
+  --xy-background-pattern-color-default: var(--border);
+}
+
+.dark .react-flow {
+  --xy-node-boxshadow-hover-default: 0 1px 3px oklch(0 0 0 / 0.3);
+  --xy-node-boxshadow-selected-default: 0 4px 12px oklch(0 0 0 / 0.4);
 }

@@ -1,10 +1,10 @@
 "use client"
 
 import { HocuspocusProvider } from "@hocuspocus/provider"
+import { getRandomUserColor } from "@workspace/canvas/lib/colors"
 import type { Edge, Node } from "@xyflow/react"
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import * as Y from "yjs"
-import { getRandomUserColor } from "@/lib/colors"
 import type {
   CollaborationActions,
   CollaborationOptions,
@@ -70,13 +70,13 @@ export function useYjsCollaboration(
   const syncFromYjs = useCallback(() => {
     if (!ydocRef.current) return
 
-    const nodesMap = ydocRef.current.getMap<Node>("nodes")
-    const edgesMap = ydocRef.current.getMap<Edge>("edges")
+    const nodesMap = ydocRef.current.getMap("nodes")
+    const edgesMap = ydocRef.current.getMap("edges")
 
     // Use requestAnimationFrame for smooth 60fps rendering
     requestAnimationFrame(() => {
-      setNodes(Array.from(nodesMap.values()))
-      setEdges(Array.from(edgesMap.values()))
+      setNodes(Array.from(nodesMap.values()) as Node[])
+      setEdges(Array.from(edgesMap.values()) as Edge[])
     })
   }, [])
 
@@ -125,16 +125,18 @@ export function useYjsCollaboration(
 
   /**
    * Handle edge changes from React Flow
+   * Uses Edge[] type to accept edges from addEdge() and applyEdgeChanges()
    */
   const updateEdges = useCallback((newEdges: Edge[]) => {
     // Update React state immediately for responsive UI
-    setEdges(newEdges)
+    setEdges([...newEdges])
 
     if (!ydocRef.current) return
 
     isLocalUpdateRef.current = true
 
-    const edgesMap = ydocRef.current.getMap<Edge>("edges")
+    // Use unknown type for Yjs map to avoid strict type constraints
+    const edgesMap = ydocRef.current.getMap("edges")
 
     ydocRef.current.transact(() => {
       const newIds = new Set(newEdges.map((e) => e.id))
@@ -147,10 +149,8 @@ export function useYjsCollaboration(
 
       for (const edge of newEdges) {
         const existing = edgesMap.get(edge.id)
-        const edgeToStore = {
-          ...edge,
-          selected: undefined,
-        }
+        // Create a copy without transient properties
+        const { selected: _, ...edgeToStore } = edge
 
         if (!existing || JSON.stringify(existing) !== JSON.stringify(edgeToStore)) {
           edgesMap.set(edge.id, edgeToStore)
@@ -215,9 +215,9 @@ export function useYjsCollaboration(
     const ydoc = new Y.Doc()
     ydocRef.current = ydoc
 
-    // Get shared types
-    const nodesMap = ydoc.getMap<Node>("nodes")
-    const edgesMap = ydoc.getMap<Edge>("edges")
+    // Get shared types (use unknown to avoid strict type constraints with Yjs)
+    const nodesMap = ydoc.getMap("nodes")
+    const edgesMap = ydoc.getMap("edges")
 
     // Create Hocuspocus provider
     // Construct full WebSocket URL with canvasId in path
@@ -282,11 +282,11 @@ export function useYjsCollaboration(
       syncFromYjs()
     }
 
-    const observeNodeChanges = (_event: Y.YMapEvent<Node>, transaction: Y.Transaction) => {
+    const observeNodeChanges = (_event: Y.YMapEvent<unknown>, transaction: Y.Transaction) => {
       handleRemoteChange(transaction)
     }
 
-    const observeEdgeChanges = (_event: Y.YMapEvent<Edge>, transaction: Y.Transaction) => {
+    const observeEdgeChanges = (_event: Y.YMapEvent<unknown>, transaction: Y.Transaction) => {
       handleRemoteChange(transaction)
     }
 

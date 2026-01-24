@@ -3,6 +3,7 @@
 import type { Node, NodeProps } from "@xyflow/react"
 import { Handle, Position } from "@xyflow/react"
 import { memo } from "react"
+import { cn } from "../../lib/utils"
 
 interface VideoNodeData extends Record<string, unknown> {
   label?: string
@@ -11,9 +12,6 @@ interface VideoNodeData extends Record<string, unknown> {
   height?: number
 }
 
-/**
- * Video node component for displaying videos
- */
 function VideoNodeComponent({ data, selected }: NodeProps<Node<VideoNodeData>>) {
   const width = data.width ?? 320
   const height = data.height ?? 180
@@ -21,18 +19,21 @@ function VideoNodeComponent({ data, selected }: NodeProps<Node<VideoNodeData>>) 
   return (
     <div className="relative">
       {data.label && (
-        <div className="absolute -top-6 left-0 truncate text-xs text-zinc-600 dark:text-zinc-400">
+        <div className="absolute -top-6 left-0 truncate text-xs text-muted-foreground">
           {data.label}
         </div>
       )}
 
       <div
-        className={`overflow-hidden rounded-lg border-2 bg-black shadow-md transition-shadow ${
-          selected ? "border-blue-500 shadow-lg" : "border-zinc-200"
-        }`}
+        className={cn(
+          "overflow-hidden rounded-lg border-2 bg-black shadow-canvas-node transition-shadow",
+          selected
+            ? "border-canvas-node-selected shadow-canvas-node-selected"
+            : "border-canvas-node"
+        )}
         style={{ width, height }}
       >
-        <Handle type="target" position={Position.Left} className="!bg-zinc-400" />
+        <Handle type="target" position={Position.Left} className="!bg-canvas-handle" />
 
         {data.videoUrl ? (
           <video
@@ -44,12 +45,12 @@ function VideoNodeComponent({ data, selected }: NodeProps<Node<VideoNodeData>>) 
             playsInline
           />
         ) : (
-          <div className="flex h-full w-full items-center justify-center bg-zinc-800 text-zinc-400">
+          <div className="flex h-full w-full items-center justify-center bg-secondary text-muted-foreground">
             No video
           </div>
         )}
 
-        <Handle type="source" position={Position.Right} className="!bg-zinc-400" />
+        <Handle type="source" position={Position.Right} className="!bg-canvas-handle" />
       </div>
     </div>
   )

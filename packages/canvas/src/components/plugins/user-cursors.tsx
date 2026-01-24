@@ -1,7 +1,7 @@
 "use client"
 
 import type { ReactFlowInstance } from "@xyflow/react"
-import type { UserPresence } from "@/hooks/collaboration"
+import type { UserPresence } from "../../types/collaboration"
 
 interface UserCursorsProps {
   users: UserPresence[]

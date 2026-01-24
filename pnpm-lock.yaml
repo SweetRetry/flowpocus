@@ -87,6 +87,9 @@ importers:
       '@workspace/api-client':
         specifier: workspace:*
         version: link:../../packages/api-client
+      '@workspace/canvas':
+        specifier: workspace:*
+        version: link:../../packages/canvas
       '@workspace/ui':
         specifier: workspace:*
         version: link:../../packages/ui
@@ -145,6 +148,55 @@ importers:
         version: link:../typescript-config
       typescript:
         specifier: ^5.9.3
+        version: 5.9.3
+
+  packages/canvas:
+    dependencies:
+      '@workspace/ui':
+        specifier: workspace:*
+        version: link:../ui
+      '@xyflow/react':
+        specifier: ^12.10.0
+        version: 12.10.0(@types/react@19.2.7)(react-dom@19.2.1(react@19.2.1))(react@19.2.1)
+      class-variance-authority:
+        specifier: ^0.7.1
+        version: 0.7.1
+      clsx:
+        specifier: ^2.1.1
+        version: 2.1.1
+      lucide-react:
+        specifier: ^0.475.0
+        version: 0.475.0(react@19.2.1)
+      react:
+        specifier: ^19.1.1
+        version: 19.2.1
+      react-dom:
+        specifier: ^19.1.1
+        version: 19.2.1(react@19.2.1)
+      tailwind-merge:
+        specifier: ^3.3.1
+        version: 3.3.1
+    devDependencies:
+      '@tailwindcss/postcss':
+        specifier: ^4.1.11
+        version: 4.1.17
+      '@types/node':
+        specifier: ^20.19.9
+        version: 20.19.25
+      '@types/react':
+        specifier: ^19.1.9
+        version: 19.2.7
+      '@types/react-dom':
+        specifier: ^19.1.7
+        version: 19.2.3(@types/react@19.2.7)
+      '@workspace/typescript-config':
+        specifier: workspace:*
+        version: link:../typescript-config
+      tailwindcss:
+        specifier: ^4.1.11
+        version: 4.1.17
+      typescript:
+        specifier: ^5.9.2
         version: 5.9.3
 
   packages/database:

@@ -13,7 +13,6 @@
   },
   "dependencies": {
     "@hocuspocus/provider": "^3.4.3",
-    "@workspace/api-client": "workspace:*",
     "@workspace/canvas": "workspace:*",
     "@workspace/ui": "workspace:*",
     "@xyflow/react": "^12.10.0",

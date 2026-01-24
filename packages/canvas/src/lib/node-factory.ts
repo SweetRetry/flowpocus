@@ -29,11 +29,11 @@ export function createImageNode(options: CreateImageNodeOptions): Node {
     id: generateNodeId("image"),
     type: "image",
     position,
+    width,
+    height,
     data: {
       label: label ?? "Image",
       imageUrl,
-      width,
-      height,
     },
   }
 }
@@ -59,11 +59,11 @@ export function createVideoNode(options: CreateVideoNodeOptions): Node {
     id: generateNodeId("video"),
     type: "video",
     position,
+    width,
+    height,
     data: {
       label: label ?? "Video",
       videoUrl,
-      width,
-      height,
     },
   }
 }

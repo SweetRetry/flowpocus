@@ -8,14 +8,9 @@ import { cn } from "../../lib/utils"
 interface ImageNodeData extends Record<string, unknown> {
   label?: string
   imageUrl?: string
-  width?: number
-  height?: number
 }
 
-function ImageNodeComponent({ data, selected }: NodeProps<Node<ImageNodeData>>) {
-  const width = data.width ?? 200
-  const height = data.height ?? 150
-
+function ImageNodeComponent({ data, selected, width, height }: NodeProps<Node<ImageNodeData>>) {
   return (
     <div className="relative">
       {data.label && (

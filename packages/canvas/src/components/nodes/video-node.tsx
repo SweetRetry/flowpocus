@@ -8,14 +8,9 @@ import { cn } from "../../lib/utils"
 interface VideoNodeData extends Record<string, unknown> {
   label?: string
   videoUrl?: string
-  width?: number
-  height?: number
 }
 
-function VideoNodeComponent({ data, selected }: NodeProps<Node<VideoNodeData>>) {
-  const width = data.width ?? 320
-  const height = data.height ?? 180
-
+function VideoNodeComponent({ data, selected, width, height }: NodeProps<Node<VideoNodeData>>) {
   return (
     <div className="relative">
       {data.label && (

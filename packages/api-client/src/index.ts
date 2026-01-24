@@ -1,9 +1,12 @@
-import { treaty } from "@elysiajs/eden"
-import type { App } from "@workspace/backend"
+import type { AppType } from "@workspace/backend"
+import { hc } from "hono/client"
 
+/**
+ * Create type-safe API client for Hono backend
+ */
 export function createApiClient(baseUrl = "http://localhost:3001") {
-  return treaty<App>(baseUrl)
+  return hc<AppType>(baseUrl)
 }
 
-export type { App }
+export type { AppType }
 export type ApiClient = ReturnType<typeof createApiClient>

@@ -1,0 +1,6 @@
+# SQLite database files
+data/
+*.db
+*.db-journal
+*.db-wal
+*.db-shm

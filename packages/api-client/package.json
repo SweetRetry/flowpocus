@@ -10,15 +10,11 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@elysiajs/eden": "^1.4.6"
+    "hono": "^4.11.5"
   },
   "devDependencies": {
     "@workspace/typescript-config": "workspace:*",
     "@workspace/backend": "workspace:*",
-    "elysia": "^1.4.22",
     "typescript": "^5.9.3"
-  },
-  "peerDependencies": {
-    "elysia": "^1.4.0"
   }
 }

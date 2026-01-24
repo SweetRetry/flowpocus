@@ -1,5 +1,5 @@
 {
-  "$schema": "https://biomejs.dev/schemas/1.9.4/schema.json",
+  "$schema": "https://biomejs.dev/schemas/2.3.11/schema.json",
   "vcs": {
     "enabled": true,
     "clientKind": "git",
@@ -7,7 +7,7 @@
   },
   "files": {
     "ignoreUnknown": true,
-    "ignore": ["node_modules", "dist", ".next", ".turbo", "pnpm-lock.yaml", "next-env.d.ts"]
+    "includes": ["**/*.ts", "**/*.tsx", "**/*.js", "**/*.jsx", "**/*.json"]
   },
   "formatter": {
     "enabled": true,
@@ -15,22 +15,30 @@
     "indentWidth": 2,
     "lineWidth": 100
   },
-  "organizeImports": {
-    "enabled": true
-  },
   "linter": {
     "enabled": true,
     "rules": {
       "recommended": true,
+      "a11y": {
+        "recommended": true
+      },
+      "complexity": {
+        "recommended": true
+      },
       "correctness": {
-        "noUnusedImports": "warn",
-        "noUnusedVariables": "warn"
+        "recommended": true
+      },
+      "performance": {
+        "recommended": true
+      },
+      "security": {
+        "recommended": true
       },
       "style": {
-        "noNonNullAssertion": "off"
+        "recommended": true
       },
       "suspicious": {
-        "noExplicitAny": "warn"
+        "recommended": true
       }
     }
   },
@@ -40,5 +48,8 @@
       "semicolons": "asNeeded",
       "trailingCommas": "es5"
     }
+  },
+  "assist": {
+    "enabled": true
   }
 }

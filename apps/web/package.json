@@ -12,13 +12,16 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@hocuspocus/provider": "^3.4.3",
     "@workspace/api-client": "workspace:*",
     "@workspace/ui": "workspace:*",
+    "@xyflow/react": "^12.10.0",
     "lucide-react": "^0.475.0",
     "next": "^16.1.2",
     "next-themes": "^0.4.6",
     "react": "^19.2.1",
-    "react-dom": "^19.2.1"
+    "react-dom": "^19.2.1",
+    "yjs": "^13.6.29"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.1.17",

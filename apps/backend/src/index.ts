@@ -1,46 +1,133 @@
-import { cors } from "@elysiajs/cors"
-import { openapi } from "@elysiajs/openapi"
-import { Elysia } from "elysia"
-import * as z from "zod"
+import type { HttpBindings } from "@hono/node-server"
+import { serve } from "@hono/node-server"
+import { createNodeWebSocket } from "@hono/node-ws"
+import { swaggerUI } from "@hono/swagger-ui"
+import { Hono } from "hono"
+import { cors } from "hono/cors"
+import { logger as honoLogger } from "hono/logger"
+import { getHocuspocus, initializeHocuspocus, shutdownHocuspocus } from "./collaboration"
+import { createLogger } from "./lib/logger"
+import { shutdownRedis } from "./lib/redis"
+import { canvasRoutes, healthRoutes } from "./routes"
 
-const app = new Elysia()
-  .use(cors())
-  .use(
-    openapi({
-      path: "/openapi",
-      documentation: {
-        info: {
-          title: "Tauri Starter API",
-          version: "0.0.1",
-          description: "Backend API for Tauri Starter",
-        },
+const logger = createLogger("server")
+
+// Initialize Hocuspocus collaboration server
+const hocuspocus = initializeHocuspocus()
+
+// Create Hono app with Node.js bindings for WebSocket access
+const app = new Hono<{ Bindings: HttpBindings }>()
+
+// Create WebSocket upgrade helper
+const { injectWebSocket, upgradeWebSocket } = createNodeWebSocket({ app })
+
+// Apply middleware
+app
+  .use("*", cors())
+  .use("*", honoLogger())
+
+  // API routes
+  .route("/health", healthRoutes)
+  .route("/api/canvases", canvasRoutes)
+
+  // OpenAPI documentation UI
+  .get("/docs", swaggerUI({ url: "/openapi.json" }))
+  .get("/openapi.json", (c) =>
+    c.json({
+      openapi: "3.0.0",
+      info: {
+        title: "Flowpocus API",
+        version: "0.0.1",
+        description: "Real-time collaborative canvas API",
       },
-      mapJsonSchema: {
-        zod: z.toJSONSchema,
+      paths: {
+        "/health": {
+          get: {
+            summary: "Health check",
+            responses: {
+              200: { description: "Server is healthy" },
+            },
+          },
+        },
+        "/api/canvases": {
+          get: { summary: "List canvases" },
+          post: { summary: "Create canvas" },
+        },
+        "/api/canvases/{id}": {
+          get: { summary: "Get canvas by ID" },
+          patch: { summary: "Update canvas metadata" },
+          delete: { summary: "Delete canvas" },
+        },
+        "/collaboration/{canvasId}": {
+          get: { summary: "WebSocket endpoint for real-time collaboration" },
+        },
       },
     })
   )
-  .get("/", () => "Hello from Elysia!", {
-    detail: {
-      summary: "Root endpoint",
-      description: "Returns a simple greeting message",
-      tags: ["General"],
-    },
-  })
-  .get("/health", () => ({ status: "ok", timestamp: Date.now() }), {
-    detail: {
-      summary: "Health check",
-      description: "Returns the health status and current timestamp",
-      tags: ["General"],
-    },
-    response: z.object({
-      status: z.literal("ok"),
-      timestamp: z.number(),
-    }),
-  })
-  .listen(3001)
 
-console.log(`Elysia running at http://${app.server?.hostname}:${app.server?.port}`)
-console.log(`OpenAPI docs available at http://${app.server?.hostname}:${app.server?.port}/openapi`)
+  // WebSocket collaboration endpoint
+  .get(
+    "/collaboration/:canvasId",
+    upgradeWebSocket((c) => {
+      const canvasId = c.req.param("canvasId")
+      const token = c.req.query("token") ?? c.req.header("Authorization")
 
-export type App = typeof app
+      return {
+        onOpen(_event, ws) {
+          const hocuspocusServer = getHocuspocus()
+          if (!hocuspocusServer) {
+            ws.close(1011, "Collaboration server not initialized")
+            return
+          }
+
+          logger.debug({ canvasId }, "WebSocket connection opened")
+
+          // Pass connection to Hocuspocus with context
+          hocuspocusServer.handleConnection(ws.raw, c.env.incoming, {
+            documentName: canvasId,
+            token,
+          })
+        },
+      }
+    })
+  )
+
+  // Root endpoint
+  .get("/", (c) => c.json({ message: "Flowpocus API", version: "0.0.1" }))
+
+// Export app type for API client type inference
+export type AppType = typeof app
+
+// Start server
+const PORT = Number(process.env.PORT) || 3001
+
+const server = serve({ fetch: app.fetch, port: PORT }, (info) => {
+  logger.info(`Server running at http://localhost:${info.port}`)
+  logger.info(`API docs available at http://localhost:${info.port}/docs`)
+  logger.info(`WebSocket collaboration at ws://localhost:${info.port}/collaboration/{canvasId}`)
+
+  // Trigger Hocuspocus onListen hook
+  hocuspocus.hooks("onListen", {
+    instance: hocuspocus,
+    configuration: hocuspocus.configuration,
+    port: info.port,
+  })
+})
+
+// Inject WebSocket support
+injectWebSocket(server)
+
+// Graceful shutdown
+async function shutdown() {
+  logger.info("Shutting down...")
+
+  await shutdownHocuspocus()
+  await shutdownRedis()
+
+  server.close()
+  logger.info("Shutdown complete")
+  process.exit(0)
+}
+
+process.on("SIGINT", shutdown)
+process.on("SIGTERM", shutdown)

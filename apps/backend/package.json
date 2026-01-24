@@ -7,20 +7,30 @@
     ".": "./src/index.ts"
   },
   "scripts": {
-    "dev": "bun run --watch src/index.ts",
-    "build": "bun build src/index.ts --outdir=dist --target=bun",
-    "start": "bun run dist/index.js",
+    "dev": "tsx watch --clear-screen=false src/index.ts",
+    "build": "tsup src/index.ts --format esm --dts",
+    "start": "node dist/index.js",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@elysiajs/cors": "^1.4.1",
-    "@elysiajs/openapi": "^1.4.1",
-    "elysia": "^1.4.22",
-    "zod": "^4.3.5"
+    "@hocuspocus/extension-database": "^3.4.3",
+    "@hocuspocus/extension-redis": "^3.4.3",
+    "@hocuspocus/server": "^3.4.3",
+    "@hono/node-server": "^1.19.9",
+    "@hono/node-ws": "^1.1.1",
+    "@hono/swagger-ui": "^0.5.3",
+    "@hono/zod-openapi": "^1.2.0",
+    "@workspace/database": "workspace:*",
+    "drizzle-orm": "^0.45.1",
+    "hono": "^4.11.5",
+    "ioredis": "^5.9.2",
+    "yjs": "^13.6.29",
+    "zod": "^4.3.6"
   },
   "devDependencies": {
-    "@types/bun": "latest",
     "@workspace/typescript-config": "workspace:*",
+    "tsup": "^8.5.0",
+    "tsx": "^4.20.3",
     "typescript": "^5.9.3"
   }
 }

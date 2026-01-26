@@ -1,0 +1,32 @@
+{
+  "name": "@workspace/svelte-ui",
+  "version": "0.0.1",
+  "description": "Svelte UI components for Flowpocus (shadcn-svelte compatible)",
+  "type": "module",
+  "private": true,
+  "license": "MIT",
+  "scripts": {
+    "check": "svelte-check --tsconfig ./tsconfig.json",
+    "check:watch": "svelte-check --tsconfig ./tsconfig.json --watch"
+  },
+  "exports": {
+    "./components/button": {
+      "svelte": "./src/components/button.svelte",
+      "default": "./src/components/button.svelte"
+    },
+    "./lib/utils": "./src/lib/utils.ts"
+  },
+  "dependencies": {
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "tailwind-merge": "^3.3.1"
+  },
+  "devDependencies": {
+    "svelte": "^5.0.0",
+    "svelte-check": "^4.3.4",
+    "typescript": "^5.9.3"
+  },
+  "peerDependencies": {
+    "svelte": "^5.0.0"
+  }
+}

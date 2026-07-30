@@ -10,6 +10,9 @@
     "apps/backend": {
       "project": ["src/**/*.ts"]
     },
+    "apps/cli": {
+      "project": ["src/**/*.ts"]
+    },
     "packages/ui": {
       "entry": ["src/components/*.tsx", "src/lib/*.ts"],
       "project": ["src/**/*.{ts,tsx}"]
@@ -25,6 +28,9 @@
       "project": ["src/**/*.{ts,tsx}"]
     },
     "packages/database": {
+      "project": ["src/**/*.ts"]
+    },
+    "packages/commands": {
       "project": ["src/**/*.ts"]
     },
     "packages/typescript-config": {}

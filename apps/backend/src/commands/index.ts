@@ -1,5 +1,2 @@
-export {
-  CanvasCommandError,
-  executeCanvasCommandInDocument,
-} from "./canvas-command"
+export { CanvasCommandError } from "./canvas-command"
 export { executeCanvasCommand } from "./service"

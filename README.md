@@ -59,6 +59,7 @@ pnpm dev
 # Or start individually
 pnpm dev:web      # Frontend at http://localhost:3000
 pnpm dev:backend  # Backend at http://localhost:3001
+pnpm dev:cli commands list
 ```
 
 Visit `http://localhost:3000/canvas/{any-id}` to start collaborating.
@@ -69,8 +70,10 @@ Visit `http://localhost:3000/canvas/{any-id}` to start collaborating.
 flowpocus/
 ├── apps/
 │   ├── web/                # Next.js frontend
-│   └── backend/            # Hono + Hocuspocus backend
+│   ├── backend/            # Hono + Hocuspocus + server-owned commands
+│   └── cli/                # Agent-facing server API client
 ├── packages/
+│   ├── commands/           # Shared Zod command contracts
 │   ├── canvas/             # React Flow components & hooks
 │   ├── ui/                 # shadcn/ui components
 │   ├── database/           # Drizzle ORM + SQLite
@@ -86,6 +89,7 @@ flowpocus/
 | `pnpm build` | Build all packages |
 | `pnpm lint` | Run Biome linter |
 | `pnpm typecheck` | Run TypeScript type checking |
+| `pnpm dev:cli <args>` | Call server-owned commands from the local CLI |
 | `pnpm db:push` | Push database schema |
 | `pnpm db:studio` | Open Drizzle Studio |
 

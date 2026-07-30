@@ -1,0 +1,31 @@
+{
+  "name": "@workspace/cli",
+  "version": "0.0.1",
+  "description": "Agent-friendly CLI for Flowpocus server commands",
+  "type": "module",
+  "private": true,
+  "license": "MIT",
+  "bin": {
+    "flowpocus": "dist/index.js"
+  },
+  "scripts": {
+    "dev": "tsx src/index.ts",
+    "build": "tsup",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@workspace/commands": "workspace:*",
+    "commander": "^14.0.3",
+    "zod": "^4.3.6"
+  },
+  "devDependencies": {
+    "@types/node": "^20.19.9",
+    "@workspace/typescript-config": "workspace:*",
+    "tsup": "^8.5.0",
+    "tsx": "^4.20.3",
+    "typescript": "^5.9.3"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

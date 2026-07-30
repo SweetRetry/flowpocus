@@ -8,7 +8,7 @@ import { logger as honoLogger } from "hono/logger"
 import { getHocuspocus, initializeHocuspocus, shutdownHocuspocus } from "./collaboration"
 import { createLogger } from "./lib/logger"
 import { shutdownRedis } from "./lib/redis"
-import { canvasRoutes, healthRoutes } from "./routes"
+import { canvasRoutes, commandRoutes, healthRoutes } from "./routes"
 
 const logger = createLogger("server")
 
@@ -29,6 +29,7 @@ app
   // API routes
   .route("/health", healthRoutes)
   .route("/api/canvases", canvasRoutes)
+  .route("/api/commands", commandRoutes)
 
   // OpenAPI documentation UI
   .get("/docs", swaggerUI({ url: "/openapi.json" }))
@@ -57,6 +58,12 @@ app
           get: { summary: "Get canvas by ID" },
           patch: { summary: "Update canvas metadata" },
           delete: { summary: "Delete canvas" },
+        },
+        "/api/commands": {
+          get: { summary: "List server-owned canvas commands" },
+        },
+        "/api/commands/{canvasId}": {
+          post: { summary: "Execute a canvas command through a direct connection" },
         },
         "/collaboration/{canvasId}": {
           get: { summary: "WebSocket endpoint for real-time collaboration" },

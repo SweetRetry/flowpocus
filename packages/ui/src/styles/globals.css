@@ -2,13 +2,9 @@
 @import "tw-animate-css";
 
 @source "../../../apps/**/*.{ts,tsx}";
-@source "../../../apps/**/*.svelte";
 @source "../../../canvas/src/**/*.{ts,tsx}";
 @source "../../../components/**/*.{ts,tsx}";
 @source "../**/*.{ts,tsx}";
-@source "../**/*.svelte";
-@source "../../../svelte-canvas/src/**/*.svelte";
-@source "../../../svelte-ui/src/**/*.svelte";
 
 @custom-variant dark (&:is(.dark *));
 

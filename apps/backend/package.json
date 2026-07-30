@@ -10,8 +10,9 @@
   },
   "scripts": {
     "dev": "tsx watch --clear-screen=false src/index.ts",
-    "build": "tsup src/index.ts --format esm --dts",
+    "build": "tsup",
     "start": "node dist/index.js",
+    "test": "tsx --test src/**/*.test.ts",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
@@ -21,6 +22,7 @@
     "@hono/node-server": "^1.19.9",
     "@hono/node-ws": "^1.1.1",
     "@hono/swagger-ui": "^0.5.3",
+    "@workspace/commands": "workspace:*",
     "@workspace/database": "workspace:*",
     "drizzle-orm": "^0.45.1",
     "hono": "^4.11.5",

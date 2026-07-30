@@ -28,6 +28,7 @@
     "dev": "turbo dev",
     "dev:web": "turbo dev --filter=web",
     "dev:backend": "turbo dev --filter=@workspace/backend",
+    "dev:cli": "pnpm --filter @workspace/cli dev",
     "lint": "biome check .",
     "lint:fix": "biome check --write .",
     "format": "biome format --write .",

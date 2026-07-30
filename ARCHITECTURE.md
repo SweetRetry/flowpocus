@@ -21,6 +21,9 @@ flowpocus/
 │   ├── backend/                    # Hono + Hocuspocus 后端
 │   │   └── src/
 │   │       ├── index.ts            # 入口 (HTTP + WebSocket)
+│   │       ├── commands/            # Server-owned Canvas Commands
+│   │       │   ├── canvas-command.ts # Schema、执行与幂等 receipt
+│   │       │   └── service.ts       # Hocuspocus direct connection 生命周期
 │   │       ├── collaboration/      # Hocuspocus 协同模块
 │   │       │   └── hocuspocus.ts   # 服务器配置与持久化
 │   │       ├── routes/             # Hono API 路由
@@ -29,6 +32,7 @@ flowpocus/
 │   │       └── lib/                # 工具库
 │   │           ├── logger.ts
 │   │           └── redis.ts
+│   ├── cli/                        # 只调用 server contract 的 agent CLI
 │   └── web/                        # Next.js 前端
 │       ├── app/
 │       │   └── canvas/[id]/page.tsx
@@ -44,6 +48,7 @@ flowpocus/
 │               ├── change-buffer.ts
 │               └── types.ts
 └── packages/
+    ├── commands/                   # 共享 Zod command contracts
     ├── database/                   # Drizzle + SQLite
     │   └── src/
     │       ├── client.ts
@@ -112,21 +117,42 @@ await db.update(canvases).set({
 })
 ```
 
-### 4. 服务端主动协同 (Server-as-a-Peer)
+### 4. Server-owned Canvas Commands
 
-支持 AI Agent 作为"隐形协作者"注入更新：
+Canvas command 的 Zod schema 与 request/receipt type 维护在 `packages/commands`；executor、业务
+校验、幂等和 mutation 只维护在 server。HTTP 与 `apps/cli` 都是 transport adapter，不接收任意
+Y.Doc updater，也不复制 command 实现。
 
 ```typescript
-export async function injectServerUpdate(
+export async function executeCanvasCommand(
   canvasId: string,
-  updater: (doc: Y.Doc) => void,
-  origin = "ai-agent"
-): Promise<void> {
-  const document = hocuspocus.documents.get(canvasId)
-  document.transact((doc) => {
-    updater(doc)
-  }, origin)
+  request: CanvasCommandRequest
+): Promise<CanvasCommandReceipt> {
+  const connection = await hocuspocus.openDirectConnection(canvasId, {
+    actor: { type: "server-command", commandId: request.commandId },
+  })
+  let receipt: CanvasCommandReceipt
+
+  try {
+    await connection.transact((document) => {
+      receipt = executeCanvasCommandInDocument(document, canvasId, request)
+    })
+  } finally {
+    await connection.disconnect()
+  }
+
+  return receipt
 }
+```
+
+实际实现通过 Hocuspocus `openDirectConnection` 写入当前 Y.Doc，因此在线浏览器会收到相同的
+协同更新，Database extension 也沿同一生命周期持久化。`commandId` 记录在 Y.Doc：相同请求可
+安全重放，不同 payload 复用同一 ID 会被拒绝。
+
+```text
+Local Agent -> apps/cli -> HTTP command route -> server command registry
+                                               -> Hocuspocus direct connection
+                                               -> Y.Doc -> broadcast + persistence
 ```
 
 ## API 端点
@@ -139,6 +165,8 @@ export async function injectServerUpdate(
 | GET | `/api/canvases/:id` | 获取画布详情 (JSON) |
 | PATCH | `/api/canvases/:id` | 更新画布元数据 |
 | DELETE | `/api/canvases/:id` | 删除画布 |
+| GET | `/api/commands` | 查询 server command 及其 input schema |
+| POST | `/api/commands/:canvasId` | 执行 typed Canvas Command |
 | WS | `/collaboration/:canvasId` | WebSocket 协同入口 |
 
 ## 运行
@@ -154,6 +182,16 @@ pnpm dev
 # - 前端: http://localhost:3000
 # - 后端: http://localhost:3001
 # - 画布: http://localhost:3000/canvas/{canvasId}
+```
+
+本地 Agent 可先发现 schema，再用 CLI 创建与协同客户端等价的节点：
+
+```bash
+pnpm dev:cli commands list
+pnpm dev:cli commands execute create_node \
+  --canvas-id <canvasId> \
+  --command-id <stable-command-id> \
+  --input '{"type":"text","position":{"x":120,"y":80},"content":"Agent note"}'
 ```
 
 ## Redis 扩展 (可选)

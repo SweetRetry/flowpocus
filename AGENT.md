@@ -9,8 +9,10 @@ This file provides guidance for AI coding agents working on this project.
 - [xyflow/react](https://reactflow.dev/) - Node-based editor
 - [hocuspocus](https://hocuspocus.dev/) - Collaboration backend
 - [Yjs](https://yjs.dev/) - CRDT for conflict-free synchronization
+- Server-owned Canvas Commands - Typed mutations for local agents and other non-UI clients
 
-This is a minimal demo focused on demonstrating how to integrate xyflow/react with hocuspocus for real-time collaboration.
+This is a minimal demo focused on xyflow/react + Hocuspocus collaboration, with a CLI that
+executes the same server-side Canvas Commands through HTTP.
 
 ## Architecture
 
@@ -26,8 +28,13 @@ This is a minimal demo focused on demonstrating how to integrate xyflow/react wi
                             │ WebSocket
                  ┌──────────▼──────────┐
                  │   apps/backend      │
-                 │   (hocuspocus)      │
+                 │ commands+hocuspocus │
                  └─────────────────────┘
+                            ▲
+                            │ HTTP
+                    ┌───────┴───────┐
+                    │   apps/cli    │
+                    └───────────────┘
 ```
 
 ## Tech Stack
@@ -38,6 +45,8 @@ This is a minimal demo focused on demonstrating how to integrate xyflow/react wi
 | Collaboration | hocuspocus |
 | CRDT | Yjs |
 | Frontend | Next.js |
+| CLI | Commander + Zod |
+| Command Contracts | Shared Zod schemas |
 | UI Components | shadcn/ui |
 | Styling | Tailwind CSS |
 | Build System | Turborepo |
@@ -49,6 +58,9 @@ This is a minimal demo focused on demonstrating how to integrate xyflow/react wi
 |------|---------|
 | `apps/web/app/` | Next.js App Router pages |
 | `apps/backend/src/index.ts` | hocuspocus server |
+| `apps/backend/src/commands/` | Server command executors, idempotency, and Y.Doc mutations |
+| `apps/cli/src/index.ts` | Agent-facing Commander CLI and HTTP adapter |
+| `packages/commands/src/` | Shared Zod command request/input/receipt contracts |
 | `packages/ui/src/components/` | Shared React components |
 | `turbo.json` | Turborepo task configuration |
 
@@ -61,6 +73,7 @@ pnpm dev
 # Start individual services
 pnpm dev:web      # Next.js on localhost:3000
 pnpm dev:backend  # hocuspocus on localhost:3001
+pnpm dev:cli commands list
 
 # Quality checks
 pnpm typecheck    # TypeScript checking
@@ -88,6 +101,7 @@ Run `pnpm check` to auto-fix issues before committing.
 | Package | Alias | Description |
 |---------|-------|-------------|
 | `packages/ui` | `@workspace/ui` | Shared React components |
+| `packages/commands` | `@workspace/commands` | Shared Zod Canvas Command contracts |
 | `packages/typescript-config` | `@workspace/typescript-config` | Shared TS configs |
 
 ## Notes for AI Agents
@@ -96,3 +110,4 @@ Run `pnpm check` to auto-fix issues before committing.
 - Use `pnpm check` to auto-fix linting issues
 - The `@workspace/` prefix is an alias for internal packages
 - Focus on xyflow + hocuspocus integration patterns
+- Keep command schemas in `packages/commands`, command execution in `apps/backend`, and CLI code transport-only

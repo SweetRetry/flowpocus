@@ -64,6 +64,25 @@ pnpm dev:cli commands list
 
 Visit `http://localhost:3000/canvas/{any-id}` to start collaborating.
 
+### Local Agent CLI
+
+Canvas Command contract 由 `packages/commands` 共享，执行逻辑只存在于 backend。CLI 使用
+Commander + Zod，通过 server API 发现和执行 command：
+
+```bash
+# 创建目标 canvas
+pnpm dev:cli canvases create --name "Agent Canvas"
+
+# 从 server 查询可用 command 与 JSON Schema
+pnpm dev:cli commands list
+
+# 使用稳定 command ID 创建节点；不确定结果时用同一 ID 重试
+pnpm dev:cli commands execute create_node \
+  --canvas-id <canvasId> \
+  --command-id <stable-command-id> \
+  --input '{"type":"text","position":{"x":120,"y":80},"content":"Agent note"}'
+```
+
 ## Project Structure
 
 ```

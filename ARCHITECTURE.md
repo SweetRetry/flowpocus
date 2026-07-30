@@ -22,13 +22,14 @@ flowpocus/
 │   │   └── src/
 │   │       ├── index.ts            # 入口 (HTTP + WebSocket)
 │   │       ├── commands/            # Server-owned Canvas Commands
-│   │       │   ├── canvas-command.ts # Schema、执行与幂等 receipt
+│   │       │   ├── canvas-command.ts # Executor、mutation 与幂等 receipt
 │   │       │   └── service.ts       # Hocuspocus direct connection 生命周期
 │   │       ├── collaboration/      # Hocuspocus 协同模块
 │   │       │   └── hocuspocus.ts   # 服务器配置与持久化
 │   │       ├── routes/             # Hono API 路由
 │   │       │   ├── health.ts
-│   │       │   └── canvases.ts     # Canvas CRUD
+│   │       │   ├── canvases.ts     # Canvas CRUD
+│   │       │   └── commands.ts     # Command discovery/execute HTTP adapter
 │   │       └── lib/                # 工具库
 │   │           ├── logger.ts
 │   │           └── redis.ts
@@ -49,6 +50,7 @@ flowpocus/
 │               └── types.ts
 └── packages/
     ├── commands/                   # 共享 Zod command contracts
+    │   └── src/canvas.ts           # Input、request、receipt 与 metadata
     ├── database/                   # Drizzle + SQLite
     │   └── src/
     │       ├── client.ts
@@ -122,6 +124,13 @@ await db.update(canvases).set({
 Canvas command 的 Zod schema 与 request/receipt type 维护在 `packages/commands`；executor、业务
 校验、幂等和 mutation 只维护在 server。HTTP 与 `apps/cli` 都是 transport adapter，不接收任意
 Y.Doc updater，也不复制 command 实现。
+
+| 层 | 所有权 |
+|---|---|
+| `packages/commands` | command name、Zod input/request/receipt schema、description |
+| `apps/backend/src/commands` | executor、业务状态变更、幂等、direct connection 生命周期 |
+| `apps/backend/src/routes/commands.ts` | HTTP decoding、canvas existence、错误到 status code 的映射 |
+| `apps/cli` | Commander UX、transport-level Zod validation、HTTP 调用与 JSON 输出 |
 
 ```typescript
 export async function executeCanvasCommand(

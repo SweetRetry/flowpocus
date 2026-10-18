@@ -1,2 +1,2 @@
-export { type DatabaseClient, db } from "./client"
-export * from "./schema"
+export { type DatabaseClient, db } from "./client.ts"
+export * from "./schema/index.ts"

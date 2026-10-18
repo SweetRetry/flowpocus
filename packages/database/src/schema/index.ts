@@ -1,1 +1,1 @@
-export * from "./canvases"
+export * from "./canvases.ts"

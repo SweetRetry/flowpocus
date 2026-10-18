@@ -16,24 +16,27 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@hocuspocus/extension-database": "^3.4.3",
-    "@hocuspocus/extension-redis": "^3.4.3",
-    "@hocuspocus/server": "^3.4.3",
-    "@hono/node-server": "^1.19.9",
-    "@hono/node-ws": "^1.1.1",
-    "@hono/swagger-ui": "^0.5.3",
+    "@hocuspocus/extension-database": "^4.7.1",
+    "@hocuspocus/extension-redis": "^4.7.1",
+    "@hocuspocus/server": "^4.7.1",
+    "@hono/node-server": "^2.1.5",
+    "@hono/swagger-ui": "^0.6.1",
     "@modelcontextprotocol/sdk": "1.32.1",
     "@workspace/commands": "workspace:*",
     "@workspace/database": "workspace:*",
-    "drizzle-orm": "^0.45.1",
-    "hono": "^4.11.5",
-    "ioredis": "^5.9.2",
-    "yjs": "^13.6.29",
-    "zod": "^4.3.6"
+    "drizzle-orm": "^0.45.4",
+    "hono": "^4.13.13",
+    "ioredis": "^5.6.1",
+    "ws": "^8.22.0",
+    "yjs": "^13.6.33",
+    "zod": "^4.6.7"
   },
   "devDependencies": {
-    "tsup": "^8.5.0",
-    "tsx": "^4.20.3",
-    "typescript": "^5.9.3"
+    "@types/node": "^24.19.2",
+    "@types/ws": "^8.18.2",
+    "@typescript/native": "npm:typescript@^7.0.2",
+    "tsup": "^9.0.0",
+    "tsx": "^4.23.15",
+    "typescript": "npm:@typescript/typescript6@^6.0.2"
   }
 }

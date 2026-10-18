@@ -45,17 +45,11 @@
     "@workspace/typescript-config": "workspace:*",
     "knip": "^6.41.0",
     "lefthook": "^2.2.2",
-    "turbo": "^2.6.3",
-    "typescript": "5.7.3"
+    "turbo": "^2.11.9",
+    "typescript": "npm:@typescript/typescript6@^6.0.2"
   },
-  "packageManager": "pnpm@10.4.1",
+  "packageManager": "pnpm@12.14.0",
   "engines": {
-    "node": ">=20"
-  },
-  "pnpm": {
-    "onlyBuiltDependencies": [
-      "better-sqlite3",
-      "esbuild"
-    ]
+    "node": ">=24"
   }
 }

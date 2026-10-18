@@ -70,7 +70,14 @@ export function getCanvasCommandDefinition(name: string) {
   return canvasCommandDefinitions[name as CanvasCommandName]
 }
 
-export function listCanvasCommandDefinitions() {
+export interface CanvasCommandDefinitionSummary {
+  name: string
+  description: string
+  /** JSON Schema document; kept structural so route types stay portable. */
+  inputSchema: Record<string, unknown>
+}
+
+export function listCanvasCommandDefinitions(): CanvasCommandDefinitionSummary[] {
   return Object.entries(canvasCommandDefinitions).map(([name, definition]) => ({
     name,
     description: definition.description,

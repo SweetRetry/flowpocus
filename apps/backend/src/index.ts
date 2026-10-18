@@ -1,10 +1,11 @@
+import type { Hocuspocus } from "@hocuspocus/server"
 import type { HttpBindings } from "@hono/node-server"
-import { serve } from "@hono/node-server"
-import { createNodeWebSocket } from "@hono/node-ws"
+import { serve, upgradeWebSocket } from "@hono/node-server"
 import { swaggerUI } from "@hono/swagger-ui"
 import { Hono } from "hono"
 import { cors } from "hono/cors"
 import { logger as honoLogger } from "hono/logger"
+import { WebSocketServer } from "ws"
 import { getHocuspocus, initializeHocuspocus, shutdownHocuspocus } from "./collaboration"
 import { createLogger } from "./lib/logger"
 import { shutdownRedis } from "./lib/redis"
@@ -17,9 +18,6 @@ const hocuspocus = initializeHocuspocus()
 
 // Create Hono app with Node.js bindings for WebSocket access
 const app = new Hono<{ Bindings: HttpBindings }>()
-
-// Create WebSocket upgrade helper
-const { injectWebSocket, upgradeWebSocket } = createNodeWebSocket({ app })
 
 // Apply middleware
 app
@@ -83,21 +81,31 @@ app
       const canvasId = c.req.param("canvasId")
       const token = c.req.query("token") ?? c.req.header("Authorization")
 
+      let connection: ReturnType<Hocuspocus["handleConnection"]> | undefined
+
       return {
         onOpen(_event, ws) {
           const hocuspocusServer = getHocuspocus()
-          if (!hocuspocusServer) {
+          if (!hocuspocusServer || !ws.raw) {
             ws.close(1011, "Collaboration server not initialized")
             return
           }
 
           logger.debug({ canvasId }, "WebSocket connection opened")
 
-          // Pass connection to Hocuspocus with context
-          hocuspocusServer.handleConnection(ws.raw, c.env.incoming, {
+          // Hocuspocus 4 takes a web Request and leaves message/close forwarding to the integration
+          connection = hocuspocusServer.handleConnection(ws.raw, c.req.raw, {
             documentName: canvasId,
             token,
           })
+        },
+        onMessage(event) {
+          if (event.data instanceof ArrayBuffer) {
+            connection?.handleMessage(new Uint8Array(event.data))
+          }
+        },
+        onClose(event) {
+          connection?.handleClose({ code: event.code, reason: event.reason })
         },
       }
     })
@@ -112,7 +120,9 @@ export type AppType = typeof app
 // Start server
 const PORT = Number(process.env.PORT) || 3001
 
-const server = serve({ fetch: app.fetch, port: PORT }, (info) => {
+const wss = new WebSocketServer({ noServer: true })
+
+const server = serve({ fetch: app.fetch, port: PORT, websocket: { server: wss } }, (info) => {
   logger.info(`Server running at http://localhost:${info.port}`)
   logger.info(`API docs available at http://localhost:${info.port}/docs`)
   logger.info(`MCP endpoint at http://localhost:${info.port}/mcp`)
@@ -125,9 +135,6 @@ const server = serve({ fetch: app.fetch, port: PORT }, (info) => {
     port: info.port,
   })
 })
-
-// Inject WebSocket support
-injectWebSocket(server)
 
 // Graceful shutdown
 async function shutdown() {

@@ -1,3 +1,13 @@
 packages:
   - "apps/*"
   - "packages/*"
+
+allowBuilds:
+  esbuild: true
+  # Hooks are installed by the root `prepare` script.
+  lefthook: false
+  # better-sqlite3 13 ships N-API prebuilds; skip the implicit node-gyp rebuild.
+  better-sqlite3: false
+  "@tailwindcss/oxide": false
+  core-js-pure: false
+  sharp: false

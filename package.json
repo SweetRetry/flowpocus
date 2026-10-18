@@ -36,7 +36,8 @@
     "typecheck": "turbo typecheck",
     "test": "turbo test",
     "knip": "knip",
-    "db:push": "pnpm --filter @workspace/database db:push",
+    "db:generate": "pnpm --filter @workspace/database db:generate",
+    "db:migrate": "pnpm --filter @workspace/database db:migrate",
     "db:studio": "pnpm --filter @workspace/database db:studio",
     "prepare": "lefthook install"
   },

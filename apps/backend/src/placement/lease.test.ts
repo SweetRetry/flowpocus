@@ -1,22 +1,14 @@
 import assert from "node:assert/strict"
-import { beforeEach, describe, it } from "node:test"
-import { and, eq, sql } from "drizzle-orm"
+import { after, beforeEach, describe, it } from "node:test"
+import { setTimeout as sleep } from "node:timers/promises"
+import { canvases, canvasLeases } from "@workspace/database"
+import { and, eq } from "drizzle-orm"
+import { useTestDatabase } from "../lib/test-database"
 
-process.env.DATABASE_URL = ":memory:"
 process.env.LOG_LEVEL = "error"
-const { canvases, db } = await import("@workspace/database")
+const { db, drop } = await useTestDatabase()
 const { createLeasePlacement } = await import("./lease")
-
-// Mirrors packages/database/src/schema; the repo applies schema with db:push
-db.run(sql`CREATE TABLE canvases (id text PRIMARY KEY NOT NULL, name text NOT NULL)`)
-db.run(sql`
-  CREATE TABLE canvas_leases (
-    canvas_id text PRIMARY KEY NOT NULL,
-    owner_id text NOT NULL,
-    owner_url text NOT NULL,
-    expires_at integer NOT NULL
-  )
-`)
+after(drop)
 
 let clock = 0
 const lost: string[] = []
@@ -47,10 +39,10 @@ async function fencedWrite(
 }
 
 describe("createLeasePlacement", () => {
-  beforeEach(() => {
-    db.run(sql`DELETE FROM canvas_leases`)
-    db.run(sql`DELETE FROM canvases`)
-    db.run(sql`INSERT INTO canvases (id, name) VALUES ('canvas-1', 'Untitled')`)
+  beforeEach(async () => {
+    await db.delete(canvasLeases)
+    await db.delete(canvases)
+    await db.insert(canvases).values({ id: "canvas-1" })
     clock = 1_000_000
     lost.length = 0
   })
@@ -111,6 +103,27 @@ describe("createLeasePlacement", () => {
     })
     assert.equal(row?.name, "state from b")
     await Promise.all([a.close(), b.close()])
+  })
+
+  it("接管事务未提交时，旧 owner 的写库等待它提交，然后匹配不到行", async () => {
+    const a = instance("a")
+    await a.acquire("canvas-1")
+
+    // Another connection is mid-takeover: lease row changed, not yet committed
+    const takeover = await db.$client.connect()
+    await takeover.query("BEGIN")
+    await takeover.query("UPDATE canvas_leases SET owner_id = 'b' WHERE canvas_id = 'canvas-1'")
+
+    // A's store starts against a snapshot that still says A owns the canvas
+    const write = fencedWrite(a, "canvas-1", "stale state from a")
+    const settledEarly = await Promise.race([write.then(() => true), sleep(200, false)])
+
+    await takeover.query("COMMIT")
+    takeover.release()
+
+    assert.equal(settledEarly, false)
+    assert.equal(await write, false)
+    await a.close()
   })
 
   it("续约让持有者跨过原过期时间", async () => {

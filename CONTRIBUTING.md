@@ -25,9 +25,10 @@ By participating in this project, you agree to maintain a respectful and inclusi
    ```bash
    pnpm install
    ```
-4. Initialize the database:
+4. Start PostgreSQL and apply the migrations:
    ```bash
-   pnpm db:push
+   docker compose up -d
+   pnpm db:migrate
    ```
 5. Start the development servers:
    ```bash
@@ -122,7 +123,7 @@ flowpocus/
 │   ├── commands/     # Shared Zod command contracts
 │   ├── canvas/       # React Flow components & hooks
 │   ├── ui/           # Shared UI components
-│   ├── database/     # Drizzle ORM + SQLite
+│   ├── database/     # Drizzle ORM + PostgreSQL
 │   └── typescript-config/  # Shared TS configs
 └── ...
 ```

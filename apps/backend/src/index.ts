@@ -2,6 +2,7 @@ import type { Hocuspocus } from "@hocuspocus/server"
 import type { HttpBindings } from "@hono/node-server"
 import { serve, upgradeWebSocket } from "@hono/node-server"
 import { swaggerUI } from "@hono/swagger-ui"
+import { db } from "@workspace/database"
 import { Hono } from "hono"
 import { cors } from "hono/cors"
 import { logger as honoLogger } from "hono/logger"
@@ -194,6 +195,7 @@ async function shutdown() {
   logger.info("Shutting down...")
 
   await shutdownHocuspocus()
+  await db.$client.end()
 
   server.close()
   logger.info("Shutdown complete")

@@ -34,7 +34,7 @@ Keep transports thin. A new command is a definition in `packages/commands/src/ca
 
 ## Verify
 
-CI (`.github/workflows/ci.yml`) is the bar. Run the same five checks before calling work done:
+CI (`.github/workflows/ci.yml`) is the bar. Run the same five checks before calling work done. Tests need PostgreSQL at `DATABASE_URL` (`docker compose up -d` provides the default):
 
 ```bash
 pnpm biome ci . && pnpm knip && pnpm typecheck && pnpm test && pnpm build

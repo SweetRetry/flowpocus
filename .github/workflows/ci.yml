@@ -24,7 +24,6 @@ jobs:
           - { name: Biome, run: pnpm biome ci . }
           - { name: Knip, run: pnpm knip }
           - { name: Typecheck, run: pnpm typecheck }
-          - { name: Test, run: pnpm test }
           - { name: Build, run: pnpm build }
     steps:
       - uses: actions/checkout@v7
@@ -37,6 +36,36 @@ jobs:
         env:
           LEFTHOOK: "0"
       - run: ${{ matrix.task.run }}
+
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    # Each test file migrates its own schema in this database; credentials match the default DATABASE_URL
+    services:
+      postgres:
+        image: postgres:18
+        env:
+          POSTGRES_USER: flowpocus
+          POSTGRES_PASSWORD: flowpocus
+          POSTGRES_DB: flowpocus
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U flowpocus"
+          --health-interval 2s
+          --health-timeout 5s
+          --health-retries 15
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+        env:
+          LEFTHOOK: "0"
+      - run: pnpm test
 
   commit-messages:
     name: Commit messages

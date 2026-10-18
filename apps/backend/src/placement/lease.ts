@@ -89,13 +89,14 @@ export function createLeasePlacement({
 
     fence(canvasId) {
       // An expired lease nobody took over is still ours: no one else can have loaded the canvas.
-      // SQLite serialises writers, so this subquery and the UPDATE around it cannot interleave
-      // with a takeover. On PostgreSQL READ COMMITTED it would need FOR SHARE on the lease row.
+      // FOR SHARE makes the store wait for an in-flight takeover of the lease row and then
+      // re-check the committed owner; a plain READ COMMITTED subquery would read a stale snapshot.
       return exists(
         db
           .select({ canvasId: canvasLeases.canvasId })
           .from(canvasLeases)
           .where(and(eq(canvasLeases.canvasId, canvasId), eq(canvasLeases.ownerId, instanceId)))
+          .for("share")
       )
     },
 

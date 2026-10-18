@@ -7,7 +7,7 @@
   },
   "files": {
     "ignoreUnknown": true,
-    "includes": ["**/*.{ts,tsx,js,jsx,mjs,cjs,json,jsonc}", "!**/next-env.d.ts"]
+    "includes": ["**/*.{ts,tsx,js,jsx,mjs,cjs,json,jsonc}", "!**/next-env.d.ts", "!**/drizzle/meta"]
   },
   "formatter": {
     "enabled": true,

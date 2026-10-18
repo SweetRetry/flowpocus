@@ -23,7 +23,7 @@ Real-time collaborative canvas editor built with React Flow and Yjs.
 | Real-time Sync | [Yjs](https://yjs.dev/) + [Hocuspocus](https://hocuspocus.dev/) |
 | Frontend | [Next.js](https://nextjs.org/) 16 + React 19 |
 | Backend | [Hono](https://hono.dev/) on Node.js |
-| Database | SQLite ([better-sqlite3](https://github.com/WiseLibs/better-sqlite3)) + [Drizzle ORM](https://orm.drizzle.team/) |
+| Database | [PostgreSQL](https://www.postgresql.org/) ([node-postgres](https://node-postgres.com/)) + [Drizzle ORM](https://orm.drizzle.team/) |
 | UI Components | [shadcn/ui](https://ui.shadcn.com/) on [Base UI](https://base-ui.com/) |
 | Styling | [Tailwind CSS](https://tailwindcss.com/) v4 |
 | Build System | [Turborepo](https://turborepo.com/), [tsdown](https://tsdown.dev/) for the backend and CLI |
@@ -35,6 +35,7 @@ Real-time collaborative canvas editor built with React Flow and Yjs.
 
 - Node.js >= 24 (see `.node-version`)
 - pnpm 12 (pinned in `packageManager`; Corepack or a recent pnpm picks it up)
+- PostgreSQL 16+ (`docker compose up -d` starts one with the default credentials)
 
 ### Installation
 
@@ -46,11 +47,12 @@ cd flowpocus
 # Install dependencies (also installs the Lefthook git hooks)
 pnpm install
 
-# Create the SQLite database and apply the schema
-pnpm db:push
+# Start PostgreSQL and apply the migrations
+docker compose up -d
+pnpm db:migrate
 ```
 
-Run `pnpm db:push` again whenever `packages/database/src/schema` changes.
+After changing `packages/database/src/schema`, run `pnpm db:generate` to write a new migration, then `pnpm db:migrate`.
 
 ### Development
 
@@ -81,7 +83,7 @@ pnpm --filter web start                  # next start
 | Variable | Used by | Default |
 |----------|---------|---------|
 | `PORT` | backend | `3001` |
-| `DATABASE_URL` | backend, `db:push` | `packages/database/data/flowpocus.db` |
+| `DATABASE_URL` | backend, `db:*` scripts, tests | `postgres://flowpocus:flowpocus@localhost:5432/flowpocus` |
 | `CLUSTER_MODE` | backend, `owner` or `redis` (see `docs/adr/0001-single-owner-placement.md`) | `owner` |
 | `REDIS_URL` | backend, required when `CLUSTER_MODE=redis` | unset |
 | `INSTANCE_ID` | backend, lease owner and Redis node identity | random UUID |
@@ -132,7 +134,7 @@ flowpocus/
 │   ├── commands/           # Shared Zod command contracts
 │   ├── canvas/             # React Flow nodes, plugins & hooks
 │   ├── ui/                 # shadcn/ui components and theme tokens
-│   ├── database/           # Drizzle ORM + SQLite
+│   ├── database/           # Drizzle ORM + PostgreSQL
 │   └── typescript-config/  # Shared TypeScript configs
 ├── docs/                   # Design notes
 └── ...
@@ -150,7 +152,8 @@ flowpocus/
 | `pnpm check` | Run Biome with auto-fix |
 | `pnpm knip` | Find unused files, exports, and dependencies |
 | `pnpm dev:cli <args>` | Call server-owned commands from the local CLI |
-| `pnpm db:push` | Push database schema |
+| `pnpm db:generate` | Write a migration from schema changes |
+| `pnpm db:migrate` | Apply pending migrations |
 | `pnpm db:studio` | Open Drizzle Studio |
 
 ## Architecture

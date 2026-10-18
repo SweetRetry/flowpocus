@@ -1,4 +1,7 @@
-import { blob, integer, sqliteTable, text } from "drizzle-orm/sqlite-core"
+import { boolean, customType, integer, jsonb, pgTable, text, timestamp } from "drizzle-orm/pg-core"
+
+// Drizzle has no built-in bytea column; node-postgres reads and writes it as a Buffer
+const bytea = customType<{ data: Buffer }>({ dataType: () => "bytea" })
 
 /**
  * Canvas table with dual-write strategy (CQRS-Lite)
@@ -6,28 +9,24 @@ import { blob, integer, sqliteTable, text } from "drizzle-orm/sqlite-core"
  * Read Model (nodes/edges): JSON format for fast HTTP API queries
  * Write Model (yjsUpdate): Binary CRDT state as Source of Truth
  */
-export const canvases = sqliteTable("canvases", {
+export const canvases = pgTable("canvases", {
   id: text("id").primaryKey(),
   name: text("name").notNull().default("Untitled"),
   description: text("description"),
 
   // Read Model - JSON for fast queries and SQL analytics
-  nodes: text("nodes", { mode: "json" }).$type<CanvasNode[]>().default([]),
-  edges: text("edges", { mode: "json" }).$type<CanvasEdge[]>().default([]),
+  nodes: jsonb("nodes").$type<CanvasNode[]>().default([]),
+  edges: jsonb("edges").$type<CanvasEdge[]>().default([]),
 
   // Write Model - CRDT binary state
-  yjsUpdate: blob("yjs_update", { mode: "buffer" }),
+  yjsUpdate: bytea("yjs_update"),
 
   // Metadata
   version: integer("version").notNull().default(0),
-  isPublic: integer("is_public", { mode: "boolean" }).notNull().default(true),
+  isPublic: boolean("is_public").notNull().default(true),
 
-  createdAt: integer("created_at", { mode: "timestamp" })
-    .notNull()
-    .$defaultFn(() => new Date()),
-  updatedAt: integer("updated_at", { mode: "timestamp" })
-    .notNull()
-    .$defaultFn(() => new Date()),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 })
 
 // React Flow compatible node type

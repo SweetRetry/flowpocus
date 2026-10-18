@@ -10,7 +10,7 @@
 | **WebSocket 客户端** | @hocuspocus/provider |
 | **后端框架** | Hono on Node.js (@hono/node-server + ws) |
 | **协同服务器** | Hocuspocus 4 |
-| **数据库** | SQLite (better-sqlite3) + Drizzle ORM |
+| **数据库** | PostgreSQL (node-postgres) + Drizzle ORM |
 | **多实例** | 默认每个画布单一 owner（数据库租约 + 实例间转发），可选 Redis Pub/Sub |
 | **构建** | Turborepo；backend 与 CLI 用 tsdown 打包 |
 
@@ -63,7 +63,7 @@ flowpocus/
     │   └── src/
     │       ├── canvas.ts            # Input、request、receipt 与 metadata
     │       └── ids.ts               # base62 短 ID
-    ├── database/                    # Drizzle + SQLite
+    ├── database/                    # Drizzle + PostgreSQL
     │   └── src/
     │       ├── client.ts
     │       └── schema/canvases.ts
@@ -217,9 +217,10 @@ Local Agent -> apps/cli -> HTTP command route -> server command registry
 ## 运行
 
 ```bash
-# 安装依赖并初始化数据库
+# 安装依赖，启动 PostgreSQL 并执行 migration
 pnpm install
-pnpm db:push
+docker compose up -d
+pnpm db:migrate
 
 # 开发模式
 pnpm dev

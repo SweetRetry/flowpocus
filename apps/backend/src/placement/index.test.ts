@@ -1,9 +1,10 @@
 import assert from "node:assert/strict"
-import { describe, it } from "node:test"
+import { after, describe, it } from "node:test"
+import { useTestDatabase } from "../lib/test-database"
 
-process.env.DATABASE_URL = ":memory:"
-const { db } = await import("@workspace/database")
+const { db, drop } = await useTestDatabase()
 const { createCluster } = await import("./index")
+after(drop)
 
 const base = {
   redisUrl: undefined,
@@ -29,6 +30,6 @@ describe("createCluster", () => {
     const cluster = createCluster({ ...base, mode: "owner" })
 
     assert.deepEqual(cluster.extensions, [])
-    await cluster.placement.close().catch(() => {})
+    await cluster.placement.close()
   })
 })

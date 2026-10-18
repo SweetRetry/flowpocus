@@ -74,7 +74,7 @@ export default function HomePage() {
             <span>Next.js</span>
             <span>Hono</span>
             <span>Drizzle</span>
-            <span>SQLite</span>
+            <span>PostgreSQL</span>
           </div>
         </div>
       </main>

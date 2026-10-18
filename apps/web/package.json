@@ -16,6 +16,7 @@
   "dependencies": {
     "@hocuspocus/provider": "^3.4.3",
     "@workspace/canvas": "workspace:*",
+    "@workspace/commands": "workspace:*",
     "@workspace/ui": "workspace:*",
     "@xyflow/react": "^12.10.0",
     "lucide-react": "^0.475.0",

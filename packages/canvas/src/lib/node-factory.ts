@@ -1,11 +1,5 @@
+import { createElementId } from "@workspace/commands"
 import type { Node } from "@xyflow/react"
-
-/**
- * Generate unique node ID
- */
-function generateNodeId(prefix: string): string {
-  return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2)}`
-}
 
 export interface CreateImageNodeOptions {
   position: { x: number; y: number }
@@ -22,11 +16,11 @@ export function createImageNode(options: CreateImageNodeOptions): Node {
   const { position, label, width = 200, height = 150 } = options
 
   // Random image from picsum if not provided
-  const seed = Math.random().toString(36).slice(2)
-  const imageUrl = options.imageUrl ?? `https://picsum.photos/seed/${seed}/400/300`
+  const id = createElementId()
+  const imageUrl = options.imageUrl ?? `https://picsum.photos/seed/${id}/400/300`
 
   return {
-    id: generateNodeId("image"),
+    id,
     type: "image",
     position,
     width,
@@ -56,7 +50,7 @@ export function createVideoNode(options: CreateVideoNodeOptions): Node {
   const videoUrl = options.videoUrl ?? "https://www.w3schools.com/html/mov_bbb.mp4"
 
   return {
-    id: generateNodeId("video"),
+    id: createElementId(),
     type: "video",
     position,
     width,
@@ -83,7 +77,7 @@ export function createTextNode(options: CreateTextNodeOptions): Node {
   const { position, label, content = "", width = 240, height = 160 } = options
 
   return {
-    id: generateNodeId("text"),
+    id: createElementId(),
     type: "text",
     position,
     width,

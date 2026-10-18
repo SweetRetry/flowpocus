@@ -20,10 +20,11 @@ describe("executeCanvasCommandInDocument", () => {
 
     const receipt = executeCanvasCommandInDocument(document, "canvas-1", request)
 
+    const nodeId = receipt.result.nodeId as string
     assert.equal(receipt.replayed, false)
-    assert.equal(receipt.result.nodeId, "node-command-1")
-    assert.deepEqual(document.getMap("nodes").get("node-command-1"), {
-      id: "node-command-1",
+    assert.match(nodeId, /^[0-9A-Za-z]{8}$/)
+    assert.deepEqual(document.getMap("nodes").get(nodeId), {
+      id: nodeId,
       type: "text",
       position: { x: 10, y: 20 },
       width: 240,
@@ -43,6 +44,7 @@ describe("executeCanvasCommandInDocument", () => {
     const replay = executeCanvasCommandInDocument(document, "canvas-1", request)
 
     assert.equal(replay.replayed, true)
+    assert.equal(replay.result.nodeId, first.result.nodeId)
     assert.equal(replay.executedAt, first.executedAt)
     assert.equal(document.getMap("nodes").size, 1)
   })

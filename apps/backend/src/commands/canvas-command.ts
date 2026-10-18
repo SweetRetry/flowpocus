@@ -3,6 +3,7 @@ import {
   type CanvasCommandReceipt,
   type CanvasCommandRequest,
   type CreateNodeInput,
+  createElementId,
   getCanvasCommandDefinition,
 } from "@workspace/commands"
 import type { CanvasNode } from "@workspace/database"
@@ -24,12 +25,8 @@ export class CanvasCommandError extends Error {
   }
 }
 
-function createNode(
-  input: CreateNodeInput,
-  commandId: string,
-  nodes: Y.Map<CanvasNode>
-): Record<string, unknown> {
-  const nodeId = input.id ?? `node-${commandId}`
+function createNode(input: CreateNodeInput, nodes: Y.Map<CanvasNode>): Record<string, unknown> {
+  const nodeId = input.id ?? createElementId()
 
   if (nodes.has(nodeId)) {
     throw new CanvasCommandError(
@@ -130,7 +127,7 @@ export function executeCanvasCommandInDocument(
       return
     }
 
-    const result = createNode(parsedInput.data, request.commandId, nodes)
+    const result = createNode(parsedInput.data, nodes)
     const storedReceipt: StoredCanvasCommandReceipt = {
       commandId: request.commandId,
       canvasId,

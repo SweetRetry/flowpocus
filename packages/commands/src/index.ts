@@ -10,3 +10,4 @@ export {
   getCanvasCommandDefinition,
   listCanvasCommandDefinitions,
 } from "./canvas"
+export { createCanvasId, createElementId } from "./ids"

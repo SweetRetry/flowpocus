@@ -30,6 +30,7 @@ import {
 } from "@workspace/canvas/components/plugins"
 import { useKeyboardShortcuts } from "@workspace/canvas/hooks"
 import { createImageNode, createTextNode, createVideoNode } from "@workspace/canvas/lib"
+import { createElementId } from "@workspace/commands"
 import { useYjsCollaboration } from "@/hooks/collaboration"
 
 // Custom node types
@@ -112,7 +113,7 @@ export function CanvasEditor({
     (connection) => {
       const newEdge: Edge = {
         ...connection,
-        id: `edge-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+        id: createElementId(),
       }
       updateEdges(addEdge(newEdge, edges))
     },

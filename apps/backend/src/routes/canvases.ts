@@ -1,3 +1,4 @@
+import { createCanvasId } from "@workspace/commands"
 import { type CanvasEdge, type CanvasNode, canvases, db } from "@workspace/database"
 import { eq } from "drizzle-orm"
 import { Hono } from "hono"
@@ -83,7 +84,7 @@ export const canvasRoutes = new Hono()
       return c.json({ error: "Invalid request", details: parsed.error.flatten() }, 400)
     }
 
-    const id = crypto.randomUUID()
+    const id = createCanvasId()
     const now = new Date()
 
     const newCanvas = {

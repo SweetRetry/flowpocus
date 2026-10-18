@@ -33,11 +33,14 @@ export default function HomePage() {
           </p>
 
           <div className="mt-10">
-            <Button asChild size="lg" className="text-base">
-              <Link href="/canvas">
-                Try it now
-                <ArrowRightIcon className="ml-2 size-4" />
-              </Link>
+            <Button
+              render={<Link href="/canvas" />}
+              nativeButton={false}
+              size="lg"
+              className="text-base"
+            >
+              Try it now
+              <ArrowRightIcon data-icon="inline-end" />
             </Button>
           </div>
         </div>

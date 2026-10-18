@@ -2,7 +2,7 @@ import assert from "node:assert/strict"
 import { after, beforeEach, describe, it } from "node:test"
 import { setTimeout as sleep } from "node:timers/promises"
 import { canvases, canvasLeases } from "@workspace/database"
-import { and, eq } from "drizzle-orm"
+import { and, eq, sql } from "drizzle-orm"
 import { useTestDatabase } from "../lib/test-database"
 
 process.env.LOG_LEVEL = "error"
@@ -10,7 +10,6 @@ const { db, drop } = await useTestDatabase()
 const { createLeasePlacement } = await import("./lease")
 after(drop)
 
-let clock = 0
 const lost: string[] = []
 
 function instance(id: string) {
@@ -20,8 +19,15 @@ function instance(id: string) {
     instanceUrl: `http://${id}:3001`,
     onLost: (canvasId) => lost.push(`${id}:${canvasId}`),
     ttlMs: 30_000,
-    now: () => clock,
   })
+}
+
+/** Lease time comes from the database clock, so tests expire a lease in the database. */
+async function expire(canvasId: string) {
+  await db
+    .update(canvasLeases)
+    .set({ expiresAt: sql`now() - interval '1 second'` })
+    .where(eq(canvasLeases.canvasId, canvasId))
 }
 
 /** The persistence write shape used by the store hook: one UPDATE carrying the fence. */
@@ -43,7 +49,6 @@ describe("createLeasePlacement", () => {
     await db.delete(canvasLeases)
     await db.delete(canvases)
     await db.insert(canvases).values({ id: "canvas-1" })
-    clock = 1_000_000
     lost.length = 0
   })
 
@@ -73,7 +78,7 @@ describe("createLeasePlacement", () => {
     const b = instance("b")
     await a.acquire("canvas-1")
 
-    clock += 30_001
+    await expire("canvas-1")
     assert.deepEqual(await b.locate("canvas-1"), { kind: "local" })
     assert.equal(await b.acquire("canvas-1"), true)
     await a.renew()
@@ -91,7 +96,7 @@ describe("createLeasePlacement", () => {
     await a.acquire("canvas-1")
 
     // A stalls past the ttl without renewing; B takes over, edits, persists
-    clock += 30_001
+    await expire("canvas-1")
     await b.acquire("canvas-1")
     assert.equal(await fencedWrite(b, "canvas-1", "state from b"), true)
 
@@ -126,14 +131,13 @@ describe("createLeasePlacement", () => {
     await a.close()
   })
 
-  it("续约让持有者跨过原过期时间", async () => {
+  it("过期但没被接管的租约，续约后重新生效", async () => {
     const a = instance("a")
     const b = instance("b")
     await a.acquire("canvas-1")
 
-    clock += 20_000
+    await expire("canvas-1")
     await a.renew()
-    clock += 20_000
 
     assert.equal(await b.acquire("canvas-1"), false)
     assert.deepEqual(lost, [])

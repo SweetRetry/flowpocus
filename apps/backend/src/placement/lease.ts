@@ -1,5 +1,5 @@
 import { canvasLeases, type DatabaseClient } from "@workspace/database"
-import { and, eq, exists, inArray, lt, or } from "drizzle-orm"
+import { and, eq, exists, gt, inArray, lt, or, sql } from "drizzle-orm"
 import { createLogger } from "../lib/logger"
 import type { CanvasLocation, CanvasPlacement } from "./types"
 
@@ -13,13 +13,13 @@ interface LeasePlacementOptions {
   /** Called when a renewal finds another instance took over a canvas this one had loaded */
   onLost: (canvasId: string) => void
   ttlMs?: number
-  now?: () => number
 }
 
 /**
  * Canvas placement backed by a lease row per canvas in the shared database.
  * The owner renews every ttl/3; an owner that stops renewing loses the canvas
- * after ttl and any instance may take it over.
+ * after ttl and any instance may take it over. Every expiry is set and compared
+ * against the database clock, so clock skew between instances does not matter.
  */
 export function createLeasePlacement({
   db,
@@ -27,16 +27,16 @@ export function createLeasePlacement({
   instanceUrl,
   onLost,
   ttlMs = 30_000,
-  now = Date.now,
 }: LeasePlacementOptions): CanvasPlacement & { renew(): Promise<void> } {
   const held = new Set<string>()
+  const expiresAt = sql`now() + make_interval(secs => ${ttlMs / 1000})`
 
   async function renew() {
     if (held.size === 0) return
     const ids = [...held]
     const renewed = await db
       .update(canvasLeases)
-      .set({ expiresAt: new Date(now() + ttlMs) })
+      .set({ expiresAt })
       .where(and(eq(canvasLeases.ownerId, instanceId), inArray(canvasLeases.canvasId, ids)))
       .returning({ canvasId: canvasLeases.canvasId })
     const kept = new Set(renewed.map((row) => row.canvasId))
@@ -56,11 +56,9 @@ export function createLeasePlacement({
   return {
     async locate(canvasId): Promise<CanvasLocation> {
       const lease = await db.query.canvasLeases.findFirst({
-        where: eq(canvasLeases.canvasId, canvasId),
+        where: and(eq(canvasLeases.canvasId, canvasId), gt(canvasLeases.expiresAt, sql`now()`)),
       })
-      if (!lease || lease.ownerId === instanceId || lease.expiresAt.getTime() <= now()) {
-        return { kind: "local" }
-      }
+      if (!lease || lease.ownerId === instanceId) return { kind: "local" }
       return { kind: "remote", url: lease.ownerUrl }
     },
 
@@ -71,14 +69,14 @@ export function createLeasePlacement({
           canvasId,
           ownerId: instanceId,
           ownerUrl: instanceUrl,
-          expiresAt: new Date(now() + ttlMs),
+          expiresAt,
         })
         .onConflictDoUpdate({
           target: canvasLeases.canvasId,
-          set: { ownerId: instanceId, ownerUrl: instanceUrl, expiresAt: new Date(now() + ttlMs) },
+          set: { ownerId: instanceId, ownerUrl: instanceUrl, expiresAt },
           setWhere: or(
             eq(canvasLeases.ownerId, instanceId),
-            lt(canvasLeases.expiresAt, new Date(now()))
+            lt(canvasLeases.expiresAt, sql`now()`)
           ),
         })
         .returning({ canvasId: canvasLeases.canvasId })

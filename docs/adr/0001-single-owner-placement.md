@@ -38,6 +38,7 @@ status: accepted
 
 ## 后果
 
+- 租约的写入和过期判断都用数据库的 `now()`，不用实例自己的时钟。实例之间的时钟偏差不会导致过早或过晚接管。
 - 每个实例都要配置 `INSTANCE_URL`，并且这个地址必须能被其他实例访问。默认值 `http://localhost:$PORT` 只适合单机。
 - 写库带 fencing。租约条件（`EXISTS canvas_leases ... owner_id = 本实例`）直接写在 `store` 的 UPDATE 语句里，检查和写入是同一条语句。丢了租约的实例写库时匹配不到行，只会记一条告警。它的客户端会在下一次续约时被断开，重连后把本地 Y.Doc 里的编辑同步给新 owner。早先的实现是先检查、再写入。一个在两步之间卡住超过 TTL 的旧 owner，会在新 owner 写完并卸载之后，用旧状态覆盖库里的数据。`lease.test.ts` 里有这个时序的测试。
 - fence 的子查询带 `FOR SHARE`。在 PostgreSQL 的 READ COMMITTED 下，普通子查询读的是语句开始时的快照，可能看不到一个正在提交的接管。`FOR SHARE` 让写库先等这个接管提交，再按最新的 owner 重新判断。`lease.test.ts` 里有一个测试，用一个未提交的接管事务验证这一点；去掉 `FOR SHARE` 后它会失败。

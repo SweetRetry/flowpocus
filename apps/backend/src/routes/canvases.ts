@@ -3,6 +3,7 @@ import { type CanvasEdge, type CanvasNode, canvases, db } from "@workspace/datab
 import { eq } from "drizzle-orm"
 import { Hono } from "hono"
 import { z } from "zod"
+import { CanvasCommandError, readCanvasDocument } from "../commands"
 import { createLogger } from "../lib/logger"
 
 const logger = createLogger("canvases")
@@ -55,6 +56,18 @@ export const canvasRoutes = new Hono()
    * Get canvas by ID (returns JSON read model)
    * For real-time collaboration, connect via WebSocket instead
    */
+  // Live Y.Doc state from the owner instance; GET /:id returns the debounced read model
+  .get("/:id/document", async (c) => {
+    try {
+      return c.json(await readCanvasDocument(c.req.param("id")))
+    } catch (error) {
+      if (error instanceof CanvasCommandError) {
+        return c.json({ error: { code: error.code, message: error.message } }, error.status)
+      }
+      throw error
+    }
+  })
+
   .get("/:id", async (c) => {
     const canvasId = c.req.param("id")
 

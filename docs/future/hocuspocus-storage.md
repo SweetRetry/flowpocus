@@ -119,5 +119,5 @@ for (const N of [1000, 10000]) for (const c of [50, 2000]) run(N, c, 0), run(N, 
 ## 已落地的相关决策
 
 - `version` 改为 SQL 原子自增，作为单调修订号，不做乐观锁。`store` 写入的是合并后的完整文档，
-  冲突时拒写会丢编辑；跨节点互斥由 Redis extension 的 store 锁负责。
+  冲突时拒写会丢编辑；跨节点互斥由画布 owner 租约负责（见 `docs/adr/0001-single-owner-placement.md`）。
 - `yjs_update` 从 base64 TEXT 改为 BLOB，省去约 33% 体积与每次编解码。

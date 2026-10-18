@@ -1,13 +1,12 @@
 import crypto from "node:crypto"
 import { Database } from "@hocuspocus/extension-database"
-import { Redis as HocuspocusRedisExtension } from "@hocuspocus/extension-redis"
 import type { Extension } from "@hocuspocus/server"
 import { Hocuspocus } from "@hocuspocus/server"
 import { canvases, db } from "@workspace/database"
-import { eq, sql } from "drizzle-orm"
+import { and, eq, sql } from "drizzle-orm"
 import * as Y from "yjs"
 import { createLogger } from "../lib/logger"
-import { getRedisClient } from "../lib/redis"
+import { type CanvasPlacement, createCluster } from "../placement"
 
 const logger = createLogger("hocuspocus")
 
@@ -31,28 +30,38 @@ interface AuthContext {
 }
 
 const instanceId = process.env.INSTANCE_ID ?? crypto.randomUUID()
+const instanceUrl =
+  process.env.INSTANCE_URL ?? `http://localhost:${Number(process.env.PORT) || 3001}`
 
 let hocuspocus: Hocuspocus | null = null
+let placement: CanvasPlacement | null = null
+
+/**
+ * Keeps this instance the single owner of every document it loads.
+ * Listed before Database so a load claims the lease before fetching state.
+ * Stores are fenced inside the persistence UPDATE itself.
+ */
+function ownershipExtension(placement: CanvasPlacement): Extension {
+  return {
+    async onLoadDocument({ documentName }) {
+      if (!(await placement.acquire(documentName))) {
+        throw new Error(`Canvas ${documentName} is owned by another instance`)
+      }
+    },
+    async afterUnloadDocument({ documentName }) {
+      await placement.release(documentName)
+    },
+  }
+}
 
 /**
  * Create Hocuspocus server instance with all extensions
  */
-function createHocuspocusInstance(): Hocuspocus {
-  const extensions: Extension[] = []
-  const redis = getRedisClient()
-
-  // Redis extension for multi-node synchronization
-  if (redis) {
-    extensions.push(
-      new HocuspocusRedisExtension({
-        redis: redis.duplicate(),
-        identifier: instanceId,
-      })
-    )
-    logger.info("Redis extension enabled for multi-node sync")
-  } else {
-    logger.warn("Running in single-node mode (no Redis)")
-  }
+function createHocuspocusInstance(
+  placement: CanvasPlacement,
+  clusterExtensions: Extension[]
+): Hocuspocus {
+  const extensions: Extension[] = [ownershipExtension(placement), ...clusterExtensions]
 
   // Database extension for persistence with dual-write strategy
   extensions.push(
@@ -107,7 +116,7 @@ function createHocuspocusInstance(): Hocuspocus {
           const edges = Array.from(edgesMap.values())
 
           // Atomic dual-write: JSON (read model) + Binary (write model)
-          await db
+          const stored = await db
             .update(canvases)
             .set({
               nodes: nodes as typeof canvases.$inferSelect.nodes,
@@ -117,7 +126,18 @@ function createHocuspocusInstance(): Hocuspocus {
               version: sql`${canvases.version} + 1`,
               updatedAt: new Date(),
             })
-            .where(eq(canvases.id, canvasId))
+            .where(and(eq(canvases.id, canvasId), placement.fence(canvasId)))
+            .returning({ id: canvases.id })
+
+          if (stored.length === 0) {
+            // Lease lost to another instance (or canvas deleted). The new owner loaded from the
+            // database; clients still connected here carry these edits over when they reconnect.
+            logger.warn(
+              { canvasId, instanceId },
+              "Store skipped: this instance no longer owns the canvas"
+            )
+            return
+          }
 
           logger.debug(
             { canvasId, nodeCount: nodes.length, edgeCount: edges.length },
@@ -305,8 +325,18 @@ export function initializeHocuspocus(): Hocuspocus {
     return hocuspocus
   }
 
-  hocuspocus = createHocuspocusInstance()
-  logger.info({ instanceId }, "Hocuspocus server initialized")
+  const mode = process.env.CLUSTER_MODE ?? "owner"
+  const cluster = createCluster({
+    mode,
+    redisUrl: process.env.REDIS_URL,
+    db,
+    instanceId,
+    instanceUrl,
+    onLost: (canvasId) => hocuspocus?.closeConnections(canvasId),
+  })
+  placement = cluster.placement
+  hocuspocus = createHocuspocusInstance(placement, cluster.extensions)
+  logger.info({ mode, instanceId, instanceUrl }, "Hocuspocus server initialized")
   return hocuspocus
 }
 
@@ -315,6 +345,10 @@ export function initializeHocuspocus(): Hocuspocus {
  */
 export function getHocuspocus(): Hocuspocus | null {
   return hocuspocus
+}
+
+export function getPlacement(): CanvasPlacement | null {
+  return placement
 }
 
 /**
@@ -326,12 +360,20 @@ export async function shutdownHocuspocus(): Promise<void> {
   logger.info("Initiating Hocuspocus shutdown...")
 
   try {
-    // Close all WebSocket connections gracefully
+    // Closing the last connection stores and unloads each document; wait for that
+    // before releasing leases, or the stores would find the lease gone and skip
     hocuspocus.closeConnections()
-    logger.info("All connections closed")
+    hocuspocus.flushPendingStores()
+    const deadline = Date.now() + 5000
+    while (hocuspocus.getDocumentsCount() > 0 && Date.now() < deadline) {
+      await new Promise((resolve) => setTimeout(resolve, 50))
+    }
+    logger.info({ remaining: hocuspocus.getDocumentsCount() }, "All connections closed")
+    await placement?.close()
   } catch (error) {
     logger.error({ error }, "Error during Hocuspocus shutdown")
   } finally {
     hocuspocus = null
+    placement = null
   }
 }

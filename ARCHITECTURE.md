@@ -11,7 +11,7 @@
 | **后端框架** | Hono on Node.js (@hono/node-server + ws) |
 | **协同服务器** | Hocuspocus 4 |
 | **数据库** | SQLite (better-sqlite3) + Drizzle ORM |
-| **集群同步** | Redis Pub/Sub (可选扩展) |
+| **多实例** | 默认每个画布单一 owner（数据库租约 + 实例间转发），可选 Redis Pub/Sub |
 | **构建** | Turborepo；backend 与 CLI 用 tsdown 打包 |
 
 ## 目录结构
@@ -26,7 +26,7 @@ flowpocus/
 │   │       │   ├── canvas-command.ts # Executor、mutation 与幂等 receipt
 │   │       │   └── service.ts       # Hocuspocus direct connection 生命周期
 │   │       ├── collaboration/
-│   │       │   └── hocuspocus.ts    # 鉴权、Database/Redis extension、持久化
+│   │       │   └── hocuspocus.ts    # 鉴权、owner 租约、Database extension、持久化
 │   │       ├── mcp/
 │   │       │   └── server.ts        # 由 command contract 生成 MCP tools
 │   │       ├── routes/              # Hono API 路由
@@ -34,9 +34,9 @@ flowpocus/
 │   │       │   ├── canvases.ts      # Canvas CRUD
 │   │       │   ├── commands.ts      # Command discovery/execute HTTP adapter
 │   │       │   └── mcp.ts           # Streamable HTTP MCP 入口
+│   │       ├── placement/           # 多实例模式: owner 租约 / Redis (见 docs/adr/0001)
 │   │       └── lib/
-│   │           ├── logger.ts
-│   │           └── redis.ts
+│   │           └── logger.ts
 │   ├── cli/                         # 只调用 server contract 的 agent CLI
 │   └── web/                         # Next.js 前端
 │       ├── app/
@@ -205,7 +205,8 @@ Local Agent -> apps/cli -> HTTP command route -> server command registry
 | GET | `/openapi.json` | OpenAPI 描述 |
 | GET | `/api/canvases` | 列出所有画布 |
 | POST | `/api/canvases` | 创建画布 |
-| GET | `/api/canvases/:id` | 获取画布详情 (JSON) |
+| GET | `/api/canvases/:id` | 获取画布详情 (JSON 读模型，可能滞后) |
+| GET | `/api/canvases/:id/document` | 从 owner 读取 live nodes/edges |
 | PATCH | `/api/canvases/:id` | 更新画布元数据 |
 | DELETE | `/api/canvases/:id` | 删除画布 |
 | GET | `/api/commands` | 查询 server command 及其 input schema |
@@ -246,12 +247,25 @@ pnpm dev:cli commands execute create_node \
 claude mcp add --transport http flowpocus http://localhost:3001/mcp
 ```
 
-## Redis 扩展 (可选)
+## 多实例
 
-设置 `REDIS_URL` 环境变量启用多实例同步：
+`CLUSTER_MODE` 选择多实例模式，默认 `owner`。
+
+**owner 模式。** 每个画布同一时刻只在一个实例（owner）上加载。owner 在 `canvas_leases` 表里持有租约，每 10 秒续约一次，30 秒不续即过期。其他实例收到该画布的 WebSocket 时原样转发到 owner；收到 Canvas Command 或 live 读时调用 owner 的 HTTP 接口。决策与回退到 Redis 的条件见 `docs/adr/0001-single-owner-placement.md`。
+
+每个实例需要唯一的 `INSTANCE_ID`，以及其他实例可访问的 `INSTANCE_URL`：
 
 ```bash
-REDIS_URL=redis://localhost:6379 pnpm dev:backend
+PORT=3001 INSTANCE_ID=a INSTANCE_URL=http://10.0.0.5:3001 pnpm dev:backend
+PORT=3001 INSTANCE_ID=b INSTANCE_URL=http://10.0.0.6:3001 pnpm dev:backend
 ```
 
-启用后，多个 Hocuspocus 实例可通过 Redis Pub/Sub 实现状态同步，支持水平扩展。
+负载均衡可选择按 `/collaboration/:canvasId` 路径做一致性哈希，减少转发；正确性不依赖它。
+
+**redis 模式。** 每个实例都直接加载收到的画布，副本之间通过 Redis Pub/Sub 同步，`store` 由 Redis 扩展的锁串行化。适合单个画布超出一个实例容量、或实例之间网络不通的部署。
+
+```bash
+CLUSTER_MODE=redis REDIS_URL=redis://localhost:6379 pnpm dev:backend
+```
+
+同一集群内所有实例必须使用同一种模式。

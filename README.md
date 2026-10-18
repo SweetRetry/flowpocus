@@ -82,8 +82,10 @@ pnpm --filter web start                  # next start
 |----------|---------|---------|
 | `PORT` | backend | `3001` |
 | `DATABASE_URL` | backend, `db:push` | `packages/database/data/flowpocus.db` |
-| `REDIS_URL` | backend | unset (single-node mode) |
-| `INSTANCE_ID` | backend, Redis node identity | random UUID |
+| `CLUSTER_MODE` | backend, `owner` or `redis` (see `docs/adr/0001-single-owner-placement.md`) | `owner` |
+| `REDIS_URL` | backend, required when `CLUSTER_MODE=redis` | unset |
+| `INSTANCE_ID` | backend, lease owner and Redis node identity | random UUID |
+| `INSTANCE_URL` | backend, address other instances forward to | `http://localhost:$PORT` |
 | `LOG_LEVEL` | backend (`debug`, `info`, `warn`, `error`) | `info` |
 | `NEXT_PUBLIC_WS_URL` | web, at build time | `ws://localhost:3001/collaboration` |
 | `FLOWPOCUS_SERVER_URL` | CLI | `http://localhost:3001` |

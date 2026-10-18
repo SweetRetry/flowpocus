@@ -5,10 +5,15 @@ import { swaggerUI } from "@hono/swagger-ui"
 import { Hono } from "hono"
 import { cors } from "hono/cors"
 import { logger as honoLogger } from "hono/logger"
-import { WebSocketServer } from "ws"
-import { getHocuspocus, initializeHocuspocus, shutdownHocuspocus } from "./collaboration"
+import type { WSEvents } from "hono/ws"
+import { WebSocket, WebSocketServer } from "ws"
+import {
+  getHocuspocus,
+  getPlacement,
+  initializeHocuspocus,
+  shutdownHocuspocus,
+} from "./collaboration"
 import { createLogger } from "./lib/logger"
-import { shutdownRedis } from "./lib/redis"
 import { canvasRoutes, commandRoutes, healthRoutes, mcpRoutes } from "./routes"
 
 const logger = createLogger("server")
@@ -53,6 +58,9 @@ app
           get: { summary: "List canvases" },
           post: { summary: "Create canvas" },
         },
+        "/api/canvases/{id}/document": {
+          get: { summary: "Read the live canvas document from its owner instance" },
+        },
         "/api/canvases/{id}": {
           get: { summary: "Get canvas by ID" },
           patch: { summary: "Update canvas metadata" },
@@ -77,9 +85,15 @@ app
   // WebSocket collaboration endpoint
   .get(
     "/collaboration/:canvasId",
-    upgradeWebSocket((c) => {
-      const canvasId = c.req.param("canvasId")
+    upgradeWebSocket(async (c) => {
+      // upgradeWebSocket types the context without the route's params; the pattern guarantees it
+      const canvasId = c.req.param("canvasId") as string
       const token = c.req.query("token") ?? c.req.header("Authorization")
+
+      const location = await getPlacement()?.locate(canvasId)
+      if (location?.kind === "remote") {
+        return relayToOwner(`${location.url}/collaboration/${encodeURIComponent(canvasId)}`, token)
+      }
 
       let connection: ReturnType<Hocuspocus["handleConnection"]> | undefined
 
@@ -114,6 +128,45 @@ app
   // Root endpoint
   .get("/", (c) => c.json({ message: "Flowpocus API", version: "0.0.1" }))
 
+/**
+ * Pipe a client socket to the canvas owner's collaboration endpoint, so any
+ * instance can accept a connection without loading a second copy of the Y.Doc.
+ */
+function relayToOwner(ownerUrl: string, token: string | undefined): WSEvents {
+  const target = new URL(ownerUrl.replace(/^http/, "ws"))
+  if (token) target.searchParams.set("token", token)
+
+  let upstream: WebSocket | undefined
+  const pending: ArrayBuffer[] = []
+
+  return {
+    onOpen(_event, ws) {
+      logger.debug({ target: target.pathname }, "Relaying WebSocket to canvas owner")
+      upstream = new WebSocket(target)
+      upstream.on("open", () => {
+        for (const message of pending.splice(0)) upstream?.send(message)
+      })
+      upstream.on("message", (data: Buffer) => ws.send(new Uint8Array(data)))
+      // 1005/1006 are reserved for "no status" and may not be sent; report them as a server error
+      upstream.on("close", (code, reason) =>
+        ws.close(code === 1005 || code === 1006 ? 1011 : code, reason.toString())
+      )
+      upstream.on("error", (error) => {
+        logger.warn({ error: error.message, target: target.pathname }, "Canvas owner unreachable")
+        ws.close(1011, "Canvas owner unreachable")
+      })
+    },
+    onMessage(event) {
+      if (!(event.data instanceof ArrayBuffer)) return
+      if (upstream?.readyState === WebSocket.OPEN) upstream.send(event.data)
+      else pending.push(event.data)
+    },
+    onClose() {
+      upstream?.close()
+    },
+  }
+}
+
 // Export app type for API client type inference
 export type AppType = typeof app
 
@@ -141,7 +194,6 @@ async function shutdown() {
   logger.info("Shutting down...")
 
   await shutdownHocuspocus()
-  await shutdownRedis()
 
   server.close()
   logger.info("Shutdown complete")

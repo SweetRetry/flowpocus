@@ -1,6 +1,8 @@
 # Flowpocus
 
-Real-time collaborative canvas editor built with React Flow and Yjs.
+Real-time collaborative canvas that humans and AI agents edit together. People work in the browser; agents
+connect through an MCP server, a CLI, or HTTP, and every change goes through the same typed, server-owned
+canvas commands. Built on React Flow, Yjs, and Hocuspocus.
 
 [![CI](https://github.com/SweetRetry/flowpocus/actions/workflows/ci.yml/badge.svg)](https://github.com/SweetRetry/flowpocus/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)

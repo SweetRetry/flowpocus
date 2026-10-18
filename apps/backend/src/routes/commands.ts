@@ -1,6 +1,4 @@
 import { canvasCommandRequestSchema, listCanvasCommandDefinitions } from "@workspace/commands"
-import { canvases, db } from "@workspace/database"
-import { eq } from "drizzle-orm"
 import { Hono } from "hono"
 import { CanvasCommandError, executeCanvasCommand } from "../commands"
 
@@ -24,17 +22,7 @@ export const commandRoutes = new Hono()
         )
       }
 
-      const canvasId = c.req.param("canvasId")
-      const canvas = await db.query.canvases.findFirst({
-        where: eq(canvases.id, canvasId),
-        columns: { id: true },
-      })
-
-      if (!canvas) {
-        return c.json({ error: { code: "CANVAS_NOT_FOUND", message: "Canvas not found" } }, 404)
-      }
-
-      const receipt = await executeCanvasCommand(canvasId, parsed.data)
+      const receipt = await executeCanvasCommand(c.req.param("canvasId"), parsed.data)
       return c.json(receipt)
     } catch (error) {
       if (error instanceof CanvasCommandError) {

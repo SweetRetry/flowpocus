@@ -22,6 +22,7 @@
     "@hono/node-server": "^1.19.9",
     "@hono/node-ws": "^1.1.1",
     "@hono/swagger-ui": "^0.5.3",
+    "@modelcontextprotocol/sdk": "1.32.1",
     "@workspace/commands": "workspace:*",
     "@workspace/database": "workspace:*",
     "drizzle-orm": "^0.45.1",

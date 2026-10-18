@@ -129,7 +129,8 @@ Y.Doc updater，也不复制 command 实现。
 |---|---|
 | `packages/commands` | command name、Zod input/request/receipt schema、description |
 | `apps/backend/src/commands` | executor、业务状态变更、幂等、direct connection 生命周期 |
-| `apps/backend/src/routes/commands.ts` | HTTP decoding、canvas existence、错误到 status code 的映射 |
+| `apps/backend/src/routes/commands.ts` | HTTP decoding、错误到 status code 的映射 |
+| `apps/backend/src/mcp/server.ts` | 由 command contract 生成 MCP tool，错误映射为 `isError` tool result |
 | `apps/cli` | Commander UX、transport-level Zod validation、HTTP 调用与 JSON 输出 |
 
 ```typescript
@@ -176,6 +177,7 @@ Local Agent -> apps/cli -> HTTP command route -> server command registry
 | DELETE | `/api/canvases/:id` | 删除画布 |
 | GET | `/api/commands` | 查询 server command 及其 input schema |
 | POST | `/api/commands/:canvasId` | 执行 typed Canvas Command |
+| POST | `/mcp` | MCP Streamable HTTP 入口 (stateless, JSON response) |
 | WS | `/collaboration/:canvasId` | WebSocket 协同入口 |
 
 ## 运行
@@ -201,6 +203,13 @@ pnpm dev:cli commands execute create_node \
   --canvas-id <canvasId> \
   --command-id <stable-command-id> \
   --input '{"type":"text","position":{"x":120,"y":80},"content":"Agent note"}'
+```
+
+远程 Agent 也可以通过 MCP 连接同一条 server command 路径。`/mcp` 暴露 `list_canvases`、
+`get_canvas` (读取 live Y.Doc) 以及 `packages/commands` 中每个 command 对应的 tool：
+
+```bash
+claude mcp add --transport http flowpocus http://localhost:3001/mcp
 ```
 
 ## Redis 扩展 (可选)

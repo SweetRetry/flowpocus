@@ -8,7 +8,7 @@ import { logger as honoLogger } from "hono/logger"
 import { getHocuspocus, initializeHocuspocus, shutdownHocuspocus } from "./collaboration"
 import { createLogger } from "./lib/logger"
 import { shutdownRedis } from "./lib/redis"
-import { canvasRoutes, commandRoutes, healthRoutes } from "./routes"
+import { canvasRoutes, commandRoutes, healthRoutes, mcpRoutes } from "./routes"
 
 const logger = createLogger("server")
 
@@ -30,6 +30,7 @@ app
   .route("/health", healthRoutes)
   .route("/api/canvases", canvasRoutes)
   .route("/api/commands", commandRoutes)
+  .route("/mcp", mcpRoutes)
 
   // OpenAPI documentation UI
   .get("/docs", swaggerUI({ url: "/openapi.json" }))
@@ -64,6 +65,9 @@ app
         },
         "/api/commands/{canvasId}": {
           post: { summary: "Execute a canvas command through a direct connection" },
+        },
+        "/mcp": {
+          post: { summary: "MCP Streamable HTTP endpoint (stateless, JSON responses)" },
         },
         "/collaboration/{canvasId}": {
           get: { summary: "WebSocket endpoint for real-time collaboration" },
@@ -111,6 +115,7 @@ const PORT = Number(process.env.PORT) || 3001
 const server = serve({ fetch: app.fetch, port: PORT }, (info) => {
   logger.info(`Server running at http://localhost:${info.port}`)
   logger.info(`API docs available at http://localhost:${info.port}/docs`)
+  logger.info(`MCP endpoint at http://localhost:${info.port}/mcp`)
   logger.info(`WebSocket collaboration at ws://localhost:${info.port}/collaboration/{canvasId}`)
 
   // Trigger Hocuspocus onListen hook

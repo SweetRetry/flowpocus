@@ -59,6 +59,7 @@ executes the same server-side Canvas Commands through HTTP.
 | `apps/web/app/` | Next.js App Router pages |
 | `apps/backend/src/index.ts` | hocuspocus server |
 | `apps/backend/src/commands/` | Server command executors, idempotency, and Y.Doc mutations |
+| `apps/backend/src/mcp/` | MCP tools generated from command contracts, served at `/mcp` |
 | `apps/cli/src/index.ts` | Agent-facing Commander CLI and HTTP adapter |
 | `packages/commands/src/` | Shared Zod command request/input/receipt contracts |
 | `packages/ui/src/components/` | Shared React components |
@@ -110,4 +111,4 @@ Run `pnpm check` to auto-fix issues before committing.
 - Use `pnpm check` to auto-fix linting issues
 - The `@workspace/` prefix is an alias for internal packages
 - Focus on xyflow + hocuspocus integration patterns
-- Keep command schemas in `packages/commands`, command execution in `apps/backend`, and CLI code transport-only
+- Keep command schemas in `packages/commands`, command execution in `apps/backend`, and CLI/MCP code transport-only

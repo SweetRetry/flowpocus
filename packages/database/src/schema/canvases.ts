@@ -1,4 +1,4 @@
-import { integer, sqliteTable, text } from "drizzle-orm/sqlite-core"
+import { blob, integer, sqliteTable, text } from "drizzle-orm/sqlite-core"
 
 /**
  * Canvas table with dual-write strategy (CQRS-Lite)
@@ -15,8 +15,8 @@ export const canvases = sqliteTable("canvases", {
   nodes: text("nodes", { mode: "json" }).$type<CanvasNode[]>().default([]),
   edges: text("edges", { mode: "json" }).$type<CanvasEdge[]>().default([]),
 
-  // Write Model - CRDT binary state (Base64 encoded for SQLite compatibility)
-  yjsUpdate: text("yjs_update"),
+  // Write Model - CRDT binary state
+  yjsUpdate: blob("yjs_update", { mode: "buffer" }),
 
   // Metadata
   version: integer("version").notNull().default(0),

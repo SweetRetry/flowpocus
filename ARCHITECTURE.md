@@ -107,14 +107,14 @@ const undoManager = new Y.UndoManager([nodesMap, edgesMap], {
 | 字段 | 类型 | 用途 |
 |------|------|------|
 | `nodes/edges` | JSON | **读模型** - HTTP API 快速查询、首屏渲染 |
-| `yjsUpdate` | Base64 | **写模型** - CRDT 二进制状态 (Source of Truth) |
+| `yjsUpdate` | BLOB | **写模型** - CRDT 二进制状态 (Source of Truth) |
 
 ```typescript
 // store 回调中同时写入两套数据
 await db.update(canvases).set({
   nodes: Array.from(nodesMap.values()),    // JSON 读模型
   edges: Array.from(edgesMap.values()),
-  yjsUpdate: Buffer.from(state).toString("base64"),  // 二进制写模型
+  yjsUpdate: Buffer.from(state),            // 二进制写模型
   version: sql`${canvases.version} + 1`,    // 单调修订号，原子自增
 })
 ```

@@ -76,8 +76,7 @@ function createHocuspocusInstance(): Hocuspocus {
             return null
           }
 
-          // Decode Base64 to binary
-          return Buffer.from(canvas.yjsUpdate, "base64")
+          return canvas.yjsUpdate
         } catch (error) {
           logger.error({ error, canvasId }, "Failed to fetch canvas")
           throw error
@@ -113,7 +112,7 @@ function createHocuspocusInstance(): Hocuspocus {
             .set({
               nodes: nodes as typeof canvases.$inferSelect.nodes,
               edges: edges as typeof canvases.$inferSelect.edges,
-              yjsUpdate: Buffer.from(stateCopy).toString("base64"),
+              yjsUpdate: Buffer.from(stateCopy),
               // Monotonic revision counter, not a lock: state is the full merged doc
               version: sql`${canvases.version} + 1`,
               updatedAt: new Date(),

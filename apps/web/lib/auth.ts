@@ -17,41 +17,6 @@ export interface User {
   avatarUrl?: string
 }
 
-export interface AuthSession {
-  user: User
-  token: string
-}
-
-// ============================================================================
-// Production Auth Interface (implement when integrating real auth)
-// ============================================================================
-
-/**
- * Get current authenticated session
- * TODO: Replace with real auth provider integration
- *
- * @example Supabase integration:
- * ```ts
- * export async function getSession(): Promise<AuthSession | null> {
- *   const { data: { session } } = await supabase.auth.getSession()
- *   if (!session) return null
- *   return {
- *     user: {
- *       id: session.user.id,
- *       name: session.user.user_metadata.name,
- *       email: session.user.email,
- *     },
- *     token: session.access_token,
- *   }
- * }
- * ```
- */
-export async function getSession(): Promise<AuthSession | null> {
-  // In production, this would check for a real session
-  // For now, return null to trigger mock user flow
-  return null
-}
-
 // ============================================================================
 // Development Mock Users
 // ============================================================================
@@ -221,11 +186,4 @@ export function getMockSession(mockUserParam?: string | null): MockSession {
   const token = `mock.${encodedPayload}.dev-signature`
 
   return { user, token }
-}
-
-/**
- * Check if running in development mode
- */
-export function isDevelopment(): boolean {
-  return process.env.NODE_ENV === "development"
 }

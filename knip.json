@@ -1,63 +1,16 @@
 {
-  "$schema": "https://unpkg.com/knip@5/schema.json",
+  "$schema": "https://unpkg.com/knip@6/schema.json",
   "workspaces": {
-    ".": {},
+    "apps/*": {},
     "apps/web": {
-      "entry": ["app/**/*.{ts,tsx}", "components/**/*.{ts,tsx}", "lib/**/*.ts", "hooks/**/*.ts"],
-      "project": ["**/*.{ts,tsx}"],
-      "ignore": [".next/**", "out/**"]
+      "ignoreDependencies": ["@tailwindcss/postcss"]
     },
-    "apps/backend": {
-      "project": ["src/**/*.ts"]
-    },
-    "apps/cli": {
-      "project": ["src/**/*.ts"]
-    },
-    "packages/ui": {
-      "entry": ["src/components/*.tsx", "src/lib/*.ts"],
-      "project": ["src/**/*.{ts,tsx}"]
-    },
-    "packages/canvas": {
-      "entry": [
-        "src/components/**/*.tsx",
-        "src/hooks/**/*.ts",
-        "src/lib/*.ts",
-        "src/types/*.ts",
-        "src/stores/*.ts"
-      ],
-      "project": ["src/**/*.{ts,tsx}"]
-    },
-    "packages/database": {
-      "project": ["src/**/*.ts"]
-    },
-    "packages/commands": {
-      "project": ["src/**/*.ts"]
-    },
-    "packages/typescript-config": {}
+    "packages/*": {}
   },
-  "ignore": [
-    "**/node_modules/**",
-    "**/.next/**",
-    "**/dist/**",
-    "**/out/**",
-    "**/target/**",
-    "**/*.css"
-  ],
-  "ignoreDependencies": [
-    "@types/.+",
-    "@workspace/typescript-config",
-    "@tailwindcss/postcss",
-    "tailwindcss",
-    "postcss",
-    "postcss-load-config",
-    "@turbo/gen",
-    "react-dom"
-  ],
+  "ignoreDependencies": ["postcss-load-config"],
+  "ignoreUnresolved": ["next"],
   "ignoreExportsUsedInFile": {
     "interface": true,
     "type": true
-  },
-  "rules": {
-    "unresolved": "off"
   }
 }

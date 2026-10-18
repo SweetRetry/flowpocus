@@ -46,7 +46,7 @@ By participating in this project, you agree to maintain a respectful and inclusi
 
 ### Commit Messages
 
-Follow the [Conventional Commits](https://www.conventionalcommits.org/) specification:
+Follow the [Conventional Commits](https://www.conventionalcommits.org/) specification, written in English. The `commit-msg` hook (`scripts/check-commit-msg.mjs`) rejects anything else, and CI re-checks every commit in a PR. Also allowed: `perf`, `build`, `ci`, `revert`.
 
 - `feat:` New feature
 - `fix:` Bug fix
@@ -77,6 +77,8 @@ pnpm lint:fix
 # Format code
 pnpm format
 ```
+
+Git hooks are managed by [Lefthook](https://lefthook.dev/) and installed by `pnpm install`. Pre-commit runs Biome on staged files and restages fixes. Pre-push runs Knip and the typecheck.
 
 ### Type Checking
 

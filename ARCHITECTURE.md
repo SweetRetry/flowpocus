@@ -115,7 +115,7 @@ await db.update(canvases).set({
   nodes: Array.from(nodesMap.values()),    // JSON 读模型
   edges: Array.from(edgesMap.values()),
   yjsUpdate: Buffer.from(state).toString("base64"),  // 二进制写模型
-  version: (existing?.version ?? 0) + 1,
+  version: sql`${canvases.version} + 1`,    // 单调修订号，原子自增
 })
 ```
 

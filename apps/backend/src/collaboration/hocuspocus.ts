@@ -4,7 +4,7 @@ import { Redis as HocuspocusRedisExtension } from "@hocuspocus/extension-redis"
 import type { Extension } from "@hocuspocus/server"
 import { Hocuspocus } from "@hocuspocus/server"
 import { canvases, db } from "@workspace/database"
-import { eq } from "drizzle-orm"
+import { eq, sql } from "drizzle-orm"
 import * as Y from "yjs"
 import { createLogger } from "../lib/logger"
 import { getRedisClient } from "../lib/redis"
@@ -107,12 +107,6 @@ function createHocuspocusInstance(): Hocuspocus {
           const nodes = Array.from(nodesMap.values())
           const edges = Array.from(edgesMap.values())
 
-          // Get current version for optimistic locking
-          const existing = await db.query.canvases.findFirst({
-            where: eq(canvases.id, canvasId),
-            columns: { version: true },
-          })
-
           // Atomic dual-write: JSON (read model) + Binary (write model)
           await db
             .update(canvases)
@@ -120,7 +114,8 @@ function createHocuspocusInstance(): Hocuspocus {
               nodes: nodes as typeof canvases.$inferSelect.nodes,
               edges: edges as typeof canvases.$inferSelect.edges,
               yjsUpdate: Buffer.from(stateCopy).toString("base64"),
-              version: (existing?.version ?? 0) + 1,
+              // Monotonic revision counter, not a lock: state is the full merged doc
+              version: sql`${canvases.version} + 1`,
               updatedAt: new Date(),
             })
             .where(eq(canvases.id, canvasId))

@@ -139,31 +139,39 @@
   }
 }
 
-/* React Flow theming - override defaults with design tokens */
+/*
+ * React Flow theming. Set the non-default --xy-* variables: React Flow reads
+ * var(--xy-x, var(--xy-x-default)), so these win over its own stylesheet
+ * regardless of load order, and follow .dark through the design tokens.
+ */
 .react-flow {
-  --xy-node-background-color-default: var(--card);
-  --xy-node-border-color-default: var(--border);
-  --xy-node-border-radius-default: var(--radius);
-  --xy-node-boxshadow-hover-default: 0 1px 3px oklch(0 0 0 / 0.1);
-  --xy-node-boxshadow-selected-default: 0 4px 12px oklch(0 0 0 / 0.15);
+  --xy-node-background-color: var(--card);
+  --xy-node-border: 1px solid var(--border);
+  --xy-node-border-radius: var(--radius);
+  --xy-node-boxshadow-hover: 0 1px 3px oklch(0 0 0 / 0.1);
+  --xy-node-boxshadow-selected: 0 4px 12px oklch(0 0 0 / 0.15);
 
-  --xy-handle-background-color-default: var(--muted-foreground);
-  --xy-handle-border-color-default: var(--background);
+  --xy-handle-background-color: var(--muted-foreground);
+  --xy-handle-border-color: var(--background);
 
-  --xy-edge-stroke-default: var(--border);
-  --xy-edge-stroke-selected-default: var(--primary);
+  --xy-edge-stroke: var(--border);
+  --xy-edge-stroke-selected: var(--primary);
 
-  --xy-minimap-background-color-default: var(--card);
-  --xy-minimap-node-background-color-default: var(--secondary);
+  --xy-minimap-background-color: var(--card);
+  --xy-minimap-mask-background-color: color-mix(in oklch, var(--muted) 60%, transparent);
+  --xy-minimap-node-background-color: var(--secondary);
 
-  --xy-controls-button-background-color-default: var(--card);
-  --xy-controls-button-background-color-hover-default: var(--accent);
-  --xy-controls-button-border-color-default: var(--border);
+  --xy-controls-button-background-color: var(--card);
+  --xy-controls-button-background-color-hover: var(--accent);
+  --xy-controls-button-color: var(--foreground);
+  --xy-controls-button-color-hover: var(--accent-foreground);
+  --xy-controls-button-border-color: var(--border);
+  --xy-controls-box-shadow: 0 0 0 1px var(--border);
 
-  --xy-background-pattern-color-default: var(--border);
+  --xy-background-pattern-color: var(--border);
 }
 
 .dark .react-flow {
-  --xy-node-boxshadow-hover-default: 0 1px 3px oklch(0 0 0 / 0.3);
-  --xy-node-boxshadow-selected-default: 0 4px 12px oklch(0 0 0 / 0.4);
+  --xy-node-boxshadow-hover: 0 1px 3px oklch(0 0 0 / 0.3);
+  --xy-node-boxshadow-selected: 0 4px 12px oklch(0 0 0 / 0.4);
 }

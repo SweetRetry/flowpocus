@@ -28,6 +28,8 @@ Keep transports thin. A new command is a definition in `packages/commands/src/ca
 - The binary Yjs state (`yjsUpdate`) is the source of truth. The `nodes`/`edges` JSON columns are a read model written by the debounced `store` hook, so they can lag the live document by up to 15s. Read live state with `readCanvasDocument` in `apps/backend/src/commands/service.ts`.
 - Browser writes run inside `ydoc.transact(..., clientId)`. The observer skips its own origin and the `UndoManager` tracks only that origin, so a write with any other origin echoes back into React Flow and escapes undo.
 - A replayed `commandId` with the same payload returns the receipt stored in the `_serverCommands` Y.Map with `replayed: true`. The same ID with a different payload is rejected. Preserve both behaviours when you touch executors.
+- `packages/database` ships TypeScript source that Node runs directly with type stripping (`pnpm start` loads it unbundled). Relative imports need explicit `.ts` extensions and only erasable syntax is allowed; its tsconfig enforces both.
+- Theme React Flow through the non-default `--xy-*` variables in `packages/ui/src/styles/globals.css`. The `-default` variables lose to React Flow's own stylesheet, which loads later.
 
 ## Verify
 

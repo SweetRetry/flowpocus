@@ -10,9 +10,8 @@ By participating in this project, you agree to maintain a respectful and inclusi
 
 ### Prerequisites
 
-- Node.js >= 20
-- pnpm >= 10
-- Bun (for backend development)
+- Node.js >= 24 (see `.node-version`)
+- pnpm 12 (pinned in `packageManager`)
 
 ### Development Setup
 
@@ -96,13 +95,12 @@ pnpm build
 
 1. Create a new branch from `master`
 2. Make your changes
-3. Ensure all checks pass:
+3. Ensure the same checks CI runs pass:
    ```bash
-   pnpm lint && pnpm typecheck && pnpm build
+   pnpm biome ci . && pnpm knip && pnpm typecheck && pnpm test && pnpm build
    ```
-4. Push your branch and create a Pull Request
-5. Fill in the PR template with relevant information
-6. Wait for review and address any feedback
+4. Push your branch and create a Pull Request with a clear description of the change
+5. Wait for review and address any feedback
 
 ### PR Guidelines
 
@@ -118,8 +116,10 @@ pnpm build
 flowpocus/
 ├── apps/
 │   ├── web/          # Next.js frontend
-│   └── backend/      # Hono + Hocuspocus backend
+│   ├── backend/      # Hono + Hocuspocus backend
+│   └── cli/          # Agent-facing CLI
 ├── packages/
+│   ├── commands/     # Shared Zod command contracts
 │   ├── canvas/       # React Flow components & hooks
 │   ├── ui/           # Shared UI components
 │   ├── database/     # Drizzle ORM + SQLite
@@ -149,7 +149,7 @@ When requesting features, please include:
 
 ## Questions?
 
-Feel free to open a [Discussion](https://github.com/SweetRetry/flowpocus/discussions) for questions or ideas.
+Feel free to open an [issue](https://github.com/SweetRetry/flowpocus/issues) for questions or ideas.
 
 ## License
 

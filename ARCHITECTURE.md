@@ -7,57 +7,67 @@
 | **前端框架** | Next.js 16 + React 19 |
 | **图形编辑器** | @xyflow/react (React Flow) |
 | **CRDT 算法** | Yjs |
-| **WebSocket 客户端** | y-websocket |
-| **后端框架** | Hono (Bun Runtime) |
-| **协同服务器** | Hocuspocus |
-| **数据库** | SQLite + Drizzle ORM |
+| **WebSocket 客户端** | @hocuspocus/provider |
+| **后端框架** | Hono on Node.js (@hono/node-server + ws) |
+| **协同服务器** | Hocuspocus 4 |
+| **数据库** | SQLite (better-sqlite3) + Drizzle ORM |
 | **集群同步** | Redis Pub/Sub (可选扩展) |
+| **构建** | Turborepo；backend 与 CLI 用 tsdown 打包 |
 
 ## 目录结构
 
 ```
 flowpocus/
 ├── apps/
-│   ├── backend/                    # Hono + Hocuspocus 后端
+│   ├── backend/                     # Hono + Hocuspocus 后端
 │   │   └── src/
-│   │       ├── index.ts            # 入口 (HTTP + WebSocket)
+│   │       ├── index.ts             # 入口 (HTTP + WebSocket 接入)
 │   │       ├── commands/            # Server-owned Canvas Commands
 │   │       │   ├── canvas-command.ts # Executor、mutation 与幂等 receipt
 │   │       │   └── service.ts       # Hocuspocus direct connection 生命周期
-│   │       ├── collaboration/      # Hocuspocus 协同模块
-│   │       │   └── hocuspocus.ts   # 服务器配置与持久化
-│   │       ├── routes/             # Hono API 路由
+│   │       ├── collaboration/
+│   │       │   └── hocuspocus.ts    # 鉴权、Database/Redis extension、持久化
+│   │       ├── mcp/
+│   │       │   └── server.ts        # 由 command contract 生成 MCP tools
+│   │       ├── routes/              # Hono API 路由
 │   │       │   ├── health.ts
-│   │       │   ├── canvases.ts     # Canvas CRUD
-│   │       │   └── commands.ts     # Command discovery/execute HTTP adapter
-│   │       └── lib/                # 工具库
+│   │       │   ├── canvases.ts      # Canvas CRUD
+│   │       │   ├── commands.ts      # Command discovery/execute HTTP adapter
+│   │       │   └── mcp.ts           # Streamable HTTP MCP 入口
+│   │       └── lib/
 │   │           ├── logger.ts
 │   │           └── redis.ts
-│   ├── cli/                        # 只调用 server contract 的 agent CLI
-│   └── web/                        # Next.js 前端
+│   ├── cli/                         # 只调用 server contract 的 agent CLI
+│   └── web/                         # Next.js 前端
 │       ├── app/
-│       │   └── canvas/[id]/page.tsx
+│       │   ├── page.tsx             # 首页
+│       │   └── canvas/
+│       │       ├── page.tsx         # 重定向到 /canvas/showcase
+│       │       └── [id]/page.tsx    # 画布页
 │       ├── components/
-│       │   └── canvas/             # Canvas 编辑器组件
-│       │       ├── canvas-editor.tsx
-│       │       ├── user-cursors.tsx
-│       │       ├── connection-status.tsx
-│       │       └── toolbar.tsx
-│       └── hooks/
-│           └── collaboration/      # Yjs 协同 hooks
-│               ├── use-yjs-collaboration.ts
-│               ├── change-buffer.ts
-│               └── types.ts
+│       │   ├── providers.tsx        # next-themes
+│       │   └── canvas/
+│       │       └── canvas-editor.tsx
+│       ├── hooks/collaboration/     # Yjs 协同 hook
+│       │   ├── use-yjs-collaboration.ts
+│       │   └── types.ts
+│       └── lib/auth.ts              # 开发用 mock token
 └── packages/
-    ├── commands/                   # 共享 Zod command contracts
-    │   └── src/canvas.ts           # Input、request、receipt 与 metadata
-    ├── database/                   # Drizzle + SQLite
+    ├── canvas/                      # React Flow 节点、插件与 hooks
+    │   └── src/
+    │       ├── components/nodes/    # text / image / video 节点
+    │       ├── components/plugins/  # toolbar、user-cursors、connection-status、focus overlay
+    │       ├── hooks/               # 快捷键、focus mode
+    │       └── lib/node-factory.ts
+    ├── commands/                    # 共享 Zod command contracts
+    │   └── src/
+    │       ├── canvas.ts            # Input、request、receipt 与 metadata
+    │       └── ids.ts               # base62 短 ID
+    ├── database/                    # Drizzle + SQLite
     │   └── src/
     │       ├── client.ts
-    │       └── schema/
-    │           ├── users.ts
-    │           └── canvases.ts
-    └── api-client/                 # Hono 类型安全客户端
+    │       └── schema/canvases.ts
+    └── ui/                          # shadcn/ui (Base UI) 组件与主题 token
 ```
 
 ## 核心设计模式
@@ -65,32 +75,27 @@ flowpocus/
 ### 1. 双向同步与循环阻断
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                    React Flow (UI)                          │
-│                         ▲                                   │
-│                         │ setNodes/setEdges                 │
-│                         │ (only for remote changes)         │
-│    ┌────────────────────┴────────────────────┐             │
-│    │                                          │             │
-│    │  onNodesChange ──────► ChangeBuffer ────►│             │
-│    │  (filter local-only)     (100ms debounce)│             │
-│    │                                          │             │
-│    │                                          ▼             │
-│    │                                    Y.Doc.transact()    │
-│    │                                    origin: clientId    │
-│    │                                          │             │
-│    │                                          ▼             │
-│    │  observe() ◄──────────────────── Y.Map.observe()      │
-│    │  (skip if origin === self)                             │
-│    └────────────────────────────────────────────────────────┘
-└─────────────────────────────────────────────────────────────┘
+React Flow onNodesChange / onEdgesChange
+        │ applyNodeChanges → updateNodes / updateEdges
+        ▼
+setNodes / setEdges            (本地 state 立即更新)
+        │
+        ▼
+Y.Doc.transact(fn, origin: clientId)
+  ├─ 去掉 selected / dragging 等本地字段
+  ├─ JSON 比较，跳过未变化的节点和边
+  └─ 删除已不存在的 id
+        │
+        ▼
+Y.Map.observe(transaction)
+  └─ origin === clientId 时跳过，只把远端变更写回 React state
 ```
 
 **关键点**：
-- `onNodesChange` 过滤掉 `select` 等仅影响本地 UI 的变更
-- 使用 `ChangeBuffer` 聚合高频拖拽操作 (100ms debounce)
-- Yjs 事务标记 `origin: clientId` 用于追踪变更来源
-- `observe` 回调跳过自身产生的变更，阻断循环
+- 本地变更先更新 React state，再同步写入 Y.Doc，没有额外的防抖层
+- 写入前剔除 `selected`、`dragging`，选中状态改走 awareness，不进入共享文档
+- 逐项 JSON 比较，未变化的条目不产生 Yjs update
+- Yjs 事务标记 `origin: clientId`，`observe` 回调据此跳过自身产生的变更，阻断循环
 
 ### 2. 隔离的撤销/重做 (Scoped Undo)
 
@@ -119,7 +124,33 @@ await db.update(canvases).set({
 })
 ```
 
-### 4. Server-owned Canvas Commands
+### 4. WebSocket 接入
+
+`@hono/node-server` 2 自带 WebSocket 支持，`serve({ websocket: { server: wss } })` 配合
+`upgradeWebSocket` 完成升级。Hocuspocus 4 的 `handleConnection` 接收 web 标准 `Request`，
+并把消息与关闭事件交给集成方转发：
+
+```typescript
+upgradeWebSocket((c) => {
+  let connection: ReturnType<Hocuspocus["handleConnection"]> | undefined
+  return {
+    onOpen(_event, ws) {
+      connection = hocuspocus.handleConnection(ws.raw, c.req.raw, { documentName, token })
+    },
+    onMessage(event) {
+      connection?.handleMessage(new Uint8Array(event.data as ArrayBuffer))
+    },
+    onClose(event) {
+      connection?.handleClose({ code: event.code, reason: event.reason })
+    },
+  }
+})
+```
+
+Hocuspocus 4 不再发送 WebSocket 层 ping，连接靠入站消息保活。客户端 awareness 约每 15 秒
+续期一次，低于服务端 30 秒的空闲超时。
+
+### 5. Server-owned Canvas Commands
 
 Canvas command 的 Zod schema 与 request/receipt type 维护在 `packages/commands`；executor、业务
 校验、幂等和 mutation 只维护在 server。HTTP 与 `apps/cli` 都是 transport adapter，不接收任意
@@ -170,6 +201,8 @@ Local Agent -> apps/cli -> HTTP command route -> server command registry
 | 方法 | 路径 | 描述 |
 |------|------|------|
 | GET | `/health` | 健康检查 |
+| GET | `/docs` | Swagger UI |
+| GET | `/openapi.json` | OpenAPI 描述 |
 | GET | `/api/canvases` | 列出所有画布 |
 | POST | `/api/canvases` | 创建画布 |
 | GET | `/api/canvases/:id` | 获取画布详情 (JSON) |
@@ -183,8 +216,9 @@ Local Agent -> apps/cli -> HTTP command route -> server command registry
 ## 运行
 
 ```bash
-# 安装依赖
+# 安装依赖并初始化数据库
 pnpm install
+pnpm db:push
 
 # 开发模式
 pnpm dev

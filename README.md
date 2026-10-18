@@ -13,6 +13,7 @@ Real-time collaborative canvas editor built with React Flow and Yjs.
 - **Scoped Undo/Redo** - Each user has independent undo history
 - **Node Types** - Text, image, and video nodes
 - **Agent Access** - Typed server-owned commands over HTTP, a local CLI, and an MCP endpoint
+- **Horizontal Scaling** - Each canvas lives on one owner instance behind a database lease, with fenced writes; Redis Pub/Sub is available as an alternative mode
 - **Light and Dark Themes** - Follows the system color scheme, canvas controls included
 
 ## Tech Stack
@@ -77,6 +78,21 @@ NEXT_PUBLIC_WS_URL=wss://your-host/collaboration pnpm build
 pnpm --filter @workspace/backend start   # node dist/index.js
 pnpm --filter web start                  # next start
 ```
+
+### Running Multiple Instances
+
+Every instance can accept any canvas. By default (`CLUSTER_MODE=owner`) a canvas loads on exactly one
+instance, which holds a lease in PostgreSQL; the others forward its WebSocket and command traffic to that
+owner. Give each instance a unique `INSTANCE_ID` and an `INSTANCE_URL` its peers can reach:
+
+```bash
+PORT=3001 INSTANCE_ID=a INSTANCE_URL=http://10.0.0.5:3001 pnpm --filter @workspace/backend start
+PORT=3001 INSTANCE_ID=b INSTANCE_URL=http://10.0.0.6:3001 pnpm --filter @workspace/backend start
+```
+
+Set `CLUSTER_MODE=redis` with `REDIS_URL` on every instance to sync copies over Redis instead. All instances
+in a cluster must use the same mode. [ADR 0001](./docs/adr/0001-single-owner-placement.md) explains the
+trade-off and when to switch.
 
 ### Environment Variables
 
@@ -156,9 +172,15 @@ flowpocus/
 | `pnpm db:migrate` | Apply pending migrations |
 | `pnpm db:studio` | Open Drizzle Studio |
 
-## Architecture
+## Documentation
 
-See [ARCHITECTURE.md](./ARCHITECTURE.md) for detailed technical documentation.
+- [ARCHITECTURE.md](./ARCHITECTURE.md) covers the data flow, sync, undo, and persistence in detail (Chinese).
+- [docs/adr](./docs/adr) records architecture decisions, starting with single-owner placement.
+- [docs/future](./docs/future) holds open design questions, such as where to store Yjs snapshots.
+- The [Wiki](https://github.com/SweetRetry/flowpocus/wiki) has longer write-ups. The
+  [October 2026 retrospective](https://github.com/SweetRetry/flowpocus/wiki/Retrospective-2026-10) (Chinese)
+  walks through this round of changes, including how multi-instance sync moved from Redis broadcast to
+  leases with fenced writes, and the bugs found on the way.
 
 ## Contributing
 

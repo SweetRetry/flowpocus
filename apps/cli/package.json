@@ -22,7 +22,7 @@
     "@types/node": "^24.19.2",
     "@typescript/native": "npm:typescript@^7.0.2",
     "@workspace/typescript-config": "workspace:*",
-    "tsdown": "^0.23.1",
+    "tsdown": "^0.23.3",
     "tsx": "^4.23.15"
   },
   "engines": {

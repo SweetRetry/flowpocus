@@ -159,10 +159,10 @@ Y.Doc updater，也不复制 command 实现。
 | 层 | 所有权 |
 |---|---|
 | `packages/commands` | command name、Zod input/request/receipt schema、description |
-| `apps/backend/src/commands` | executor、业务状态变更、幂等、direct connection 生命周期 |
+| `apps/backend/src/commands` | executor、业务状态变更、幂等、direct connection 生命周期、agent 光标 |
 | `apps/backend/src/routes/commands.ts` | HTTP decoding、错误到 status code 的映射 |
 | `apps/backend/src/mcp/server.ts` | 由 command contract 生成 MCP tool，错误映射为 `isError` tool result |
-| `apps/cli` | Commander UX、transport-level Zod validation、HTTP 调用与 JSON 输出 |
+| `apps/cli` | Commander UX（含 `--agent-name`/`--agent-color`）、transport-level Zod validation、HTTP 调用与 JSON 输出 |
 
 ```typescript
 export async function executeCanvasCommand(
@@ -195,6 +195,23 @@ Local Agent -> apps/cli -> HTTP command route -> server command registry
                                                -> Hocuspocus direct connection
                                                -> Y.Doc -> broadcast + persistence
 ```
+
+### 6. 在场感知 (Awareness) 与 Agent 光标
+
+用户光标、选中状态都走 Yjs awareness，不进入共享文档。状态形如
+`{ user: { id, name, color, kind }, cursor, selection, activity }`，`cursor` 是 flow 坐标，
+`kind` 区分真人 (`user`) 与 agent。
+
+- 浏览器端：鼠标位置用 `screenToFlowPosition` 转成 flow 坐标，最多每 40ms 发一次；离开画布时立即发 `null`。
+- 渲染：`UserCursors` 放在 React Flow 的 `ViewportPortal` 里，用 flow 坐标定位并按 `1 / zoom` 反向缩放，平移缩放时光标不漂移。
+- Agent 光标：命令没有浏览器连接，所以由 server 在 `document.awareness` 上为一个没有 socket 的 client ID 写状态（`apps/backend/src/commands/presence.ts`）。
+  client ID 由 `canvasId + agent name` 哈希得到，同名 agent 复用同一个光标；调用方通过请求里可选的 `agent: { name, color, model, avatarUrl }` 认领自己的身份，缺省为 `Agent`。
+  身份由 agent 自报，server 无法验证。`model` 会显示在光标标签上，并在没给 `color` 时按型号家族取色；`avatarUrl` 必须是 HTTPS，加载失败回退为首字母头像。
+  浏览器会直接请求这个 URL（带 `no-referrer`），所以它能向所有观看者暴露其 IP，部署到不可信调用方时应改为白名单或代理。MCP 工具的参数说明会要求模型填写自己的名字和型号。
+- 动作编排：有人在看时，命令先把光标从入场点滑到目标位置并显示 `activity`（约 1 秒），再执行 mutation，完成后选中新节点，停留 4 秒后离场。
+  滑动动画由浏览器 CSS transition 完成，server 只发起点和终点。
+- 不增加无观众的延迟：没有任何 WebSocket 连接时直接跳过；重放的 `commandId` 也不做动作。
+- Agent 光标不是 Canvas Command：它不写 `_serverCommands`，也不进入 Y.Doc 持久化，状态过期后自然消失（awareness 另有 30 秒超时兜底）。
 
 ## API 端点
 

@@ -83,6 +83,31 @@ function createNode(input: CreateNodeInput, nodes: Y.Map<CanvasNode>): Record<st
   return { nodeId, node }
 }
 
+export interface CommandFocus {
+  position: { x: number; y: number }
+  activity: string
+}
+
+/**
+ * Where a first-time, valid command is about to act, so viewers can watch an agent
+ * go there. Null for invalid input and for replays, which change nothing to watch.
+ */
+export function planCommandFocus(
+  document: Y.Doc,
+  request: CanvasCommandRequest
+): CommandFocus | null {
+  const definition = getCanvasCommandDefinition(request.name)
+  const parsedInput = definition?.inputSchema.safeParse(request.input)
+  if (!parsedInput?.success || document.getMap("_serverCommands").has(request.commandId)) {
+    return null
+  }
+
+  return {
+    position: parsedInput.data.position,
+    activity: `Creating ${parsedInput.data.type} node`,
+  }
+}
+
 export function executeCanvasCommandInDocument(
   document: Y.Doc,
   canvasId: string,

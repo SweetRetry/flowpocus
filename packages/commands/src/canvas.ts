@@ -47,10 +47,27 @@ export const canvasCommandDefinitions = {
 export type CanvasCommandName = keyof typeof canvasCommandDefinitions
 export type CreateNodeInput = z.infer<typeof createNodeInputSchema>
 
+/** How the caller appears to people watching the canvas while its command runs. */
+export const canvasAgentSchema = z.object({
+  name: z.string().min(1).max(40),
+  color: z
+    .string()
+    .regex(/^#[0-9a-f]{6}$/i)
+    .optional(),
+  /** Model the agent runs on, such as "deepseek-v4". Self-declared, not verified. */
+  model: z.string().min(1).max(80).optional(),
+  /** HTTPS image the agent claims as its avatar. Self-declared, not verified. */
+  avatarUrl: z
+    .url({ protocol: /^https$/ })
+    .max(2048)
+    .optional(),
+})
+
 export const canvasCommandRequestSchema = z.object({
   commandId: z.string().min(1).max(128),
   name: z.string().min(1).max(128),
   input: z.unknown(),
+  agent: canvasAgentSchema.optional(),
 })
 
 export const canvasCommandReceiptSchema = z.object({
@@ -63,6 +80,7 @@ export const canvasCommandReceiptSchema = z.object({
   replayed: z.boolean(),
 })
 
+export type CanvasAgent = z.infer<typeof canvasAgentSchema>
 export type CanvasCommandRequest = z.infer<typeof canvasCommandRequestSchema>
 export type CanvasCommandReceipt = z.infer<typeof canvasCommandReceiptSchema>
 

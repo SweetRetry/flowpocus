@@ -1,46 +1,46 @@
 "use client"
 
-import type { ReactFlowInstance } from "@xyflow/react"
+import { useStore, ViewportPortal } from "@xyflow/react"
 import type { UserPresence } from "../../types/collaboration"
+import { PresenceAvatar } from "./presence-avatar"
 
 interface UserCursorsProps {
   users: UserPresence[]
-  reactFlowInstance: ReactFlowInstance | null
+}
+
+/** A person's pointer tracks the mouse; an agent's glides between targets like a hand would. */
+const GLIDE: Record<UserPresence["kind"], string> = {
+  user: "transform 80ms linear",
+  agent: "transform 700ms cubic-bezier(0.45, 0, 0.2, 1)",
 }
 
 /**
- * Renders other users' cursors on the canvas
- * Converts flow coordinates to screen coordinates for accurate positioning
+ * Renders other collaborators' cursors in flow coordinates, so they stay on the
+ * same spot of the canvas while the viewport pans and zooms.
  */
-export function UserCursors({ users, reactFlowInstance }: UserCursorsProps) {
+export function UserCursors({ users }: UserCursorsProps) {
+  const zoom = useStore((state) => state.transform[2])
+
   return (
-    <div className="pointer-events-none absolute inset-0 z-50 overflow-hidden">
-      {users
-        .filter((user) => user.cursor)
-        .map((user) => {
-          const cursor = user.cursor
-          if (!cursor) return null
-
-          // Convert flow coordinates to screen coordinates
-          const screenPos = reactFlowInstance
-            ? reactFlowInstance.flowToScreenPosition(cursor)
-            : cursor
-
-          return (
-            <div
-              key={user.id}
-              className="absolute transition-transform duration-75"
-              style={{
-                transform: `translate(${screenPos.x}px, ${screenPos.y}px)`,
-              }}
-            >
-              {/* Cursor pointer */}
+    <ViewportPortal>
+      {users.map(({ clientId, cursor, color, name, kind, model, avatarUrl, activity }) =>
+        cursor ? (
+          <div
+            key={clientId}
+            className="pointer-events-none absolute left-0 top-0 z-50"
+            style={{
+              transform: `translate(${cursor.x}px, ${cursor.y}px)`,
+              transition: GLIDE[kind],
+            }}
+          >
+            {/* Counter-scale so the cursor keeps its screen size at any zoom */}
+            <div style={{ transform: `scale(${1 / zoom})`, transformOrigin: "0 0" }}>
               <svg
                 width="16"
                 height="16"
                 viewBox="0 0 16 16"
                 fill="none"
-                style={{ color: user.color }}
+                style={{ color }}
                 aria-hidden="true"
               >
                 <path
@@ -50,16 +50,21 @@ export function UserCursors({ users, reactFlowInstance }: UserCursorsProps) {
                   strokeWidth="1"
                 />
               </svg>
-              {/* User name label */}
               <div
-                className="ml-4 mt-1 whitespace-nowrap rounded px-1.5 py-0.5 text-xs text-white shadow-sm"
-                style={{ backgroundColor: user.color }}
+                className="ml-4 mt-1 flex items-center gap-1 whitespace-nowrap rounded-full px-1.5 py-0.5 text-white text-xs shadow-sm"
+                style={{ backgroundColor: color }}
               >
-                {user.name}
+                {kind === "agent" && <PresenceAvatar name={name} color={color} url={avatarUrl} />}
+                <span>{name}</span>
+                {kind === "agent" && model && model !== name && (
+                  <span className="opacity-70">{model}</span>
+                )}
+                {kind === "agent" && activity && <span>· {activity}</span>}
               </div>
             </div>
-          )
-        })}
-    </div>
+          </div>
+        ) : null
+      )}
+    </ViewportPortal>
   )
 }

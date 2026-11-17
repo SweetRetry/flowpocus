@@ -26,6 +26,10 @@ const executeCommandOptionsSchema = z.object({
   canvasId: z.string().min(1),
   input: z.string().min(1),
   commandId: z.string().min(1).max(128),
+  agentName: z.string().optional(),
+  agentColor: z.string().optional(),
+  agentModel: z.string().optional(),
+  agentAvatar: z.string().optional(),
 })
 
 class CliError extends Error {
@@ -176,24 +180,49 @@ commands
   .requiredOption("--canvas-id <id>", "Target canvas ID")
   .requiredOption("--input <json>", "Command input as JSON")
   .option("--command-id <id>", "Stable idempotency ID", randomUUID())
-  .action(async (name: string, options: { canvasId: string; input: string; commandId: string }) => {
-    const { server } = program.opts<{ server: string }>()
-    const input = parseOptions(executeCommandOptionsSchema, options)
-    const request = parseOptions(canvasCommandRequestSchema, {
-      commandId: input.commandId,
-      name,
-      input: parseInput(input.input),
-    })
-    const result = await requestJson(
-      server,
-      `/api/commands/${encodeURIComponent(input.canvasId)}`,
-      {
-        method: "POST",
-        body: JSON.stringify(request),
+  .option("--agent-name <name>", "Cursor name shown to people watching the canvas")
+  .option("--agent-color <hex>", "Cursor color as #rrggbb")
+  .option("--agent-model <model>", "Model you run on, such as deepseek-v4")
+  .option("--agent-avatar <url>", "HTTPS image to show as your avatar")
+  .action(
+    async (
+      name: string,
+      options: {
+        canvasId: string
+        input: string
+        commandId: string
+        agentName?: string
+        agentColor?: string
+        agentModel?: string
+        agentAvatar?: string
       }
-    )
-    writeJson(parseOptions(canvasCommandReceiptSchema, result))
-  })
+    ) => {
+      const { server } = program.opts<{ server: string }>()
+      const input = parseOptions(executeCommandOptionsSchema, options)
+      const request = parseOptions(canvasCommandRequestSchema, {
+        commandId: input.commandId,
+        name,
+        input: parseInput(input.input),
+        agent: input.agentName
+          ? {
+              name: input.agentName,
+              color: input.agentColor,
+              model: input.agentModel,
+              avatarUrl: input.agentAvatar,
+            }
+          : undefined,
+      })
+      const result = await requestJson(
+        server,
+        `/api/commands/${encodeURIComponent(input.canvasId)}`,
+        {
+          method: "POST",
+          body: JSON.stringify(request),
+        }
+      )
+      writeJson(parseOptions(canvasCommandReceiptSchema, result))
+    }
+  )
 
 program.parseAsync().catch((error: unknown) => {
   if (

@@ -11,7 +11,7 @@ canvas commands. Built on React Flow, Yjs, and Hocuspocus.
 
 - **Real-time Collaboration** - Multiple users can edit the same canvas simultaneously
 - **Conflict-free Sync** - Powered by Yjs CRDT for seamless concurrent editing
-- **User Presence** - See other users' cursors and selections in real-time
+- **User Presence** - See other users' cursors and selections in real-time, and watch agents move their own cursor as they edit
 - **Scoped Undo/Redo** - Each user has independent undo history
 - **Node Types** - Text, image, and video nodes
 - **Agent Access** - Typed server-owned commands over HTTP, a local CLI, and an MCP endpoint

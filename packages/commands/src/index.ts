@@ -1,8 +1,10 @@
 export {
+  type CanvasAgent,
   type CanvasCommandName,
   type CanvasCommandReceipt,
   type CanvasCommandRequest,
   type CreateNodeInput,
+  canvasAgentSchema,
   canvasCommandDefinitions,
   canvasCommandReceiptSchema,
   canvasCommandRequestSchema,

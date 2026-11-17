@@ -1,3 +1,4 @@
+import type { DirectConnection, Document } from "@hocuspocus/server"
 import {
   type CanvasCommandReceipt,
   type CanvasCommandRequest,
@@ -7,7 +8,14 @@ import { type CanvasEdge, type CanvasNode, canvases, db } from "@workspace/datab
 import { eq } from "drizzle-orm"
 import type * as Y from "yjs"
 import { getHocuspocus, getPlacement } from "../collaboration"
-import { CanvasCommandError, executeCanvasCommandInDocument } from "./canvas-command"
+import {
+  CanvasCommandError,
+  executeCanvasCommandInDocument,
+  planCommandFocus,
+} from "./canvas-command"
+import { openAgentPresence } from "./presence"
+
+const DEFAULT_AGENT = { name: "Agent" }
 
 interface CanvasDocument {
   nodes: CanvasNode[]
@@ -50,10 +58,10 @@ async function callOwner(url: string, init?: RequestInit): Promise<unknown> {
   return body
 }
 
-async function transactCanvas<T>(
+async function withCanvas<T>(
   canvasId: string,
   actor: Record<string, unknown>,
-  fn: (document: Y.Doc) => T
+  fn: (connection: DirectConnection, document: Document) => Promise<T>
 ): Promise<T> {
   const hocuspocus = getHocuspocus()
   if (!hocuspocus) {
@@ -73,15 +81,20 @@ async function transactCanvas<T>(
   }
 
   const connection = await hocuspocus.openDirectConnection(canvasId, { actor })
-  let result: { value: T } | undefined
-
   try {
-    await connection.transact((document) => {
-      result = { value: fn(document) }
-    })
+    // The connection keeps its document loaded, so it is in the registry
+    return await fn(connection, hocuspocus.documents.get(canvasId) as Document)
   } finally {
     await connection.disconnect()
   }
+}
+
+async function transactIn<T>(connection: DirectConnection, fn: (document: Y.Doc) => T): Promise<T> {
+  let result: { value: T } | undefined
+
+  await connection.transact((document) => {
+    result = { value: fn(document) }
+  })
 
   if (!result) {
     throw new CanvasCommandError("COMMAND_FAILED", 500, "Canvas transaction did not run")
@@ -103,10 +116,25 @@ export async function executeCanvasCommand(
     return canvasCommandReceiptSchema.parse(receipt)
   }
 
-  return transactCanvas(
+  return withCanvas(
     canvasId,
     { type: "server-command", commandId: request.commandId },
-    (document) => executeCanvasCommandInDocument(document, canvasId, request)
+    async (connection, document) => {
+      const presence = openAgentPresence(document, canvasId, request.agent ?? DEFAULT_AGENT)
+      const focus = presence && planCommandFocus(document, request)
+      if (focus) await presence.approach(focus.position, focus.activity)
+
+      let receipt: CanvasCommandReceipt | undefined
+      try {
+        receipt = await transactIn(connection, (live) =>
+          executeCanvasCommandInDocument(live, canvasId, request)
+        )
+        return receipt
+      } finally {
+        const nodeId = receipt?.result.nodeId
+        presence?.settle(typeof nodeId === "string" ? [nodeId] : [])
+      }
+    }
   )
 }
 
@@ -122,8 +150,10 @@ export async function readCanvasDocument(canvasId: string): Promise<CanvasDocume
     )) as CanvasDocument
   }
 
-  return transactCanvas(canvasId, { type: "server-read" }, (document) => ({
-    nodes: Array.from(document.getMap<CanvasNode>("nodes").values()),
-    edges: Array.from(document.getMap<CanvasEdge>("edges").values()),
-  }))
+  return withCanvas(canvasId, { type: "server-read" }, (connection) =>
+    transactIn(connection, (document) => ({
+      nodes: Array.from(document.getMap<CanvasNode>("nodes").values()),
+      edges: Array.from(document.getMap<CanvasEdge>("edges").values()),
+    }))
+  )
 }

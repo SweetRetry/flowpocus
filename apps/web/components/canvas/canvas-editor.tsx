@@ -72,6 +72,7 @@ export function CanvasEditor({
     nodes,
     edges,
     status,
+    self,
     users,
     error,
     canUndo,
@@ -131,12 +132,9 @@ export function CanvasEditor({
   const onMouseMove = useCallback(
     (event: React.MouseEvent) => {
       if (!reactFlowRef.current) return
-      const bounds = event.currentTarget.getBoundingClientRect()
-      const position = reactFlowRef.current.screenToFlowPosition({
-        x: event.clientX - bounds.left,
-        y: event.clientY - bounds.top,
-      })
-      updateCursor(position)
+      updateCursor(
+        reactFlowRef.current.screenToFlowPosition({ x: event.clientX, y: event.clientY })
+      )
     },
     [updateCursor]
   )
@@ -183,10 +181,12 @@ export function CanvasEditor({
       </div>
 
       <div className="absolute right-4 top-4 z-10">
-        <ConnectionStatusBadge status={status} userCount={users.length} error={error} />
+        <ConnectionStatusBadge
+          status={status}
+          people={[{ key: "self", ...self }, ...users.map((u) => ({ ...u, key: u.clientId }))]}
+          error={error}
+        />
       </div>
-
-      <UserCursors users={users} reactFlowInstance={reactFlowRef.current} />
 
       <ReactFlow
         nodes={nodes}
@@ -202,6 +202,7 @@ export function CanvasEditor({
           reactFlowRef.current = instance
         }}
         fitView
+        elevateEdgesOnSelect={false}
         proOptions={{ hideAttribution: true }}
         selectionOnDrag
         selectionMode={SelectionMode.Partial}
@@ -217,6 +218,7 @@ export function CanvasEditor({
             return selectedByOthers ? getCssVar("--warning") : getCssVar("--secondary")
           }}
         />
+        <UserCursors users={users} />
         <FocusOverlay />
       </ReactFlow>
     </div>

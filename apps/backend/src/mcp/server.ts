@@ -1,6 +1,6 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js"
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js"
-import { canvasCommandDefinitions } from "@workspace/commands"
+import { canvasAgentSchema, canvasCommandDefinitions } from "@workspace/commands"
 import { db } from "@workspace/database"
 import { z } from "zod"
 import { CanvasCommandError, executeCanvasCommand, readCanvasDocument } from "../commands"
@@ -71,11 +71,16 @@ export function createMcpServer(): McpServer {
           canvasId: z.string().min(1),
           commandId: z.string().min(1).max(128).describe("Stable idempotency key for this change"),
           input: definition.inputSchema,
+          agent: canvasAgentSchema
+            .optional()
+            .describe(
+              "Who you are, shown as your cursor to people watching the canvas. Set name and model to your own (for example DeepSeek and deepseek-v4); add avatarUrl (https) to claim an avatar."
+            ),
         },
         annotations: { idempotentHint: true, destructiveHint: false },
       },
-      ({ canvasId, commandId, input }) =>
-        run(() => executeCanvasCommand(canvasId, { commandId, name, input }))
+      ({ canvasId, commandId, input, agent }) =>
+        run(() => executeCanvasCommand(canvasId, { commandId, name, input, agent }))
     )
   }
 

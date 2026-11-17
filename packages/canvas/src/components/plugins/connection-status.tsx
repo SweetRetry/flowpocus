@@ -1,11 +1,18 @@
 "use client"
 
 import { cn } from "../../lib/utils"
-import type { ConnectionStatus } from "../../types/collaboration"
+import type { ConnectionStatus, UserPresence } from "../../types/collaboration"
+import { PresenceAvatar } from "./presence-avatar"
+
+/** Avatars shown before the rest collapse into "+n". */
+const MAX_AVATARS = 3
+
+type Person = Pick<UserPresence, "name" | "color" | "model" | "avatarUrl">
 
 interface ConnectionStatusBadgeProps {
   status: ConnectionStatus
-  userCount: number
+  /** Everyone on the canvas, the current user first. */
+  people: (Person & { key: string | number })[]
   error?: string
 }
 
@@ -38,7 +45,7 @@ const statusConfig: Record<
 /**
  * Shows collaboration connection status
  */
-export function ConnectionStatusBadge({ status, userCount, error }: ConnectionStatusBadgeProps) {
+export function ConnectionStatusBadge({ status, people, error }: ConnectionStatusBadgeProps) {
   const config = statusConfig[status]
 
   return (
@@ -54,26 +61,29 @@ export function ConnectionStatusBadge({ status, userCount, error }: ConnectionSt
         {error && <span className="ml-1 text-xs opacity-75">({error})</span>}
       </div>
 
-      {status === "connected" && userCount > 0 && (
-        <div className="flex items-center gap-1 text-xs text-muted-foreground">
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            width="14"
-            height="14"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            aria-hidden="true"
-          >
-            <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
-            <circle cx="9" cy="7" r="4" />
-            <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
-            <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-          </svg>
-          <span>{userCount + 1}</span>
+      {status === "connected" && people.length > 1 && (
+        <div className="flex items-center -space-x-1.5">
+          {people.slice(0, MAX_AVATARS).map(({ key, name, color, model, avatarUrl }) => (
+            <span key={key} title={model ? `${name} (${model})` : name}>
+              <PresenceAvatar
+                name={name}
+                color={color}
+                url={avatarUrl}
+                className="size-6 text-xs ring-background"
+              />
+            </span>
+          ))}
+          {people.length > MAX_AVATARS && (
+            <span
+              title={people
+                .slice(MAX_AVATARS)
+                .map((person) => person.name)
+                .join(", ")}
+              className="flex size-6 items-center justify-center rounded-full bg-muted font-medium text-muted-foreground text-xs ring-2 ring-background"
+            >
+              +{people.length - MAX_AVATARS}
+            </span>
+          )}
         </div>
       )}
     </div>

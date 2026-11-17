@@ -13,6 +13,24 @@ import type {
   UserPresence,
 } from "./types"
 
+/** Shape of the awareness state this app and the server's agent presence both write. */
+interface AwarenessState {
+  user?: {
+    id?: string
+    name?: string
+    color?: string
+    kind?: "user" | "agent"
+    model?: string
+    avatarUrl?: string
+  }
+  cursor?: { x: number; y: number } | null
+  selection?: string[]
+  activity?: string | null
+}
+
+/** Cursor updates are coalesced to at most one per this many ms. */
+const CURSOR_INTERVAL_MS = 40
+
 /**
  * useYjsCollaboration - React Flow + Yjs real-time collaboration hook
  *
@@ -52,6 +70,8 @@ export function useYjsCollaboration(
   const undoManagerRef = useRef<Y.UndoManager | null>(null)
   const clientIdRef = useRef<string>(`client-${Date.now()}-${Math.random().toString(36).slice(2)}`)
   const isLocalUpdateRef = useRef(false)
+  const cursorTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined)
+  const cursorSentAtRef = useRef(0)
 
   // User presence info
   const userInfo = useMemo(
@@ -176,12 +196,24 @@ export function useYjsCollaboration(
   }, [])
 
   /**
-   * Update cursor position for awareness
+   * Update cursor position for awareness. Moves are throttled; leaving the canvas (null)
+   * goes out at once and cancels any move still waiting.
    */
   const updateCursor = useCallback((position: { x: number; y: number } | null) => {
-    if (!providerRef.current?.awareness) return
+    const awareness = providerRef.current?.awareness
+    if (!awareness) return
 
-    providerRef.current.awareness.setLocalStateField("cursor", position)
+    clearTimeout(cursorTimerRef.current)
+    const send = () => {
+      cursorSentAtRef.current = performance.now()
+      awareness.setLocalStateField("cursor", position)
+    }
+    const wait = CURSOR_INTERVAL_MS - (performance.now() - cursorSentAtRef.current)
+    if (!position || wait <= 0) {
+      send()
+    } else {
+      cursorTimerRef.current = setTimeout(send, wait)
+    }
   }, [])
 
   /**
@@ -253,7 +285,7 @@ export function useYjsCollaboration(
 
     // Set up awareness (user presence)
     provider.awareness?.setLocalState({
-      user: userInfo,
+      user: { ...userInfo, kind: "user" },
       cursor: null,
       selection: [],
     })
@@ -297,16 +329,23 @@ export function useYjsCollaboration(
     const awarenessHandler = () => {
       if (!provider.awareness) return
 
-      const states = Array.from(provider.awareness.getStates().entries())
-      const otherUsers: UserPresence[] = states
-        .filter(([clientId]) => clientId !== provider.awareness?.clientID)
-        .map(([, state]) => ({
-          id: (state as { user?: { id?: string } }).user?.id ?? "unknown",
-          name: (state as { user?: { name?: string } }).user?.name ?? "Anonymous",
-          color: (state as { user?: { color?: string } }).user?.color ?? "#888",
-          cursor: (state as { cursor?: { x: number; y: number } }).cursor,
-          selection: (state as { selection?: string[] }).selection,
-        }))
+      const otherUsers: UserPresence[] = []
+      for (const [clientId, state] of provider.awareness.getStates()) {
+        if (clientId === provider.awareness.clientID) continue
+        const { user, cursor, selection } = state as AwarenessState
+        otherUsers.push({
+          clientId,
+          id: user?.id ?? "unknown",
+          name: user?.name ?? "Anonymous",
+          color: user?.color ?? "#888",
+          kind: user?.kind ?? "user",
+          model: user?.model,
+          avatarUrl: user?.avatarUrl,
+          activity: state.activity ?? undefined,
+          cursor: cursor ?? undefined,
+          selection,
+        })
+      }
 
       setUsers(otherUsers)
     }
@@ -317,6 +356,7 @@ export function useYjsCollaboration(
       nodesMap.unobserve(observeNodeChanges)
       edgesMap.unobserve(observeEdgeChanges)
       provider.awareness?.off("change", awarenessHandler)
+      clearTimeout(cursorTimerRef.current)
       undoManager.destroy()
       provider.disconnect()
       provider.destroy()
@@ -329,6 +369,7 @@ export function useYjsCollaboration(
     nodes,
     edges,
     status,
+    self: userInfo,
     users,
     error,
     canUndo,

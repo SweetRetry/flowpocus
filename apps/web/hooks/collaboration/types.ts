@@ -1,20 +1,7 @@
+import type { ConnectionStatus, UserPresence } from "@workspace/canvas/types/collaboration"
 import type { Edge, Node } from "@xyflow/react"
 
-/**
- * Connection status for collaboration
- */
-export type ConnectionStatus = "disconnected" | "connecting" | "connected" | "error"
-
-/**
- * Awareness user presence data
- */
-export interface UserPresence {
-  id: string
-  name: string
-  color: string
-  cursor?: { x: number; y: number }
-  selection?: string[]
-}
+export type { ConnectionStatus, UserPresence }
 
 /**
  * Collaboration hook options
@@ -48,6 +35,8 @@ export interface CollaborationState {
   edges: Edge[]
   /** Connection status */
   status: ConnectionStatus
+  /** This client as others see it, so the UI can show it beside them */
+  self: { name: string; color: string }
   /** Other users currently editing */
   users: UserPresence[]
   /** Error message if status is 'error' */

@@ -17,6 +17,13 @@ updates:
     commit-message:
       prefix: chore
       include: scope
+    ignore:
+      # @hocuspocus/extension-redis pins ioredis ~5.6.1 and types createClient against it.
+      - dependency-name: ioredis
+        update-types: ["version-update:semver-major", "version-update:semver-minor"]
+      # Types track the Node runtime in .node-version; bump both together.
+      - dependency-name: "@types/node"
+        update-types: ["version-update:semver-major"]
     groups:
       dev-dependencies:
         dependency-type: development

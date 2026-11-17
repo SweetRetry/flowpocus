@@ -2,7 +2,7 @@
 
 Flowpocus is a real-time collaborative canvas. React Flow renders it, Yjs holds it, and Hocuspocus syncs and persists it. Agents and other non-UI clients change a canvas only through server-owned Canvas Commands.
 
-Read `ARCHITECTURE.md` (Chinese) before touching sync, undo, persistence, or the command path. `docs/future/` holds open design decisions; read the matching note before changing storage.
+Read `docs/ARCHITECTURE.md` (Chinese) before touching sync, undo, persistence, or the command path. `docs/future/` holds open design decisions; read the matching note before changing storage.
 
 ## Ownership
 

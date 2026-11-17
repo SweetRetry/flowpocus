@@ -177,13 +177,9 @@ flowpocus/
 
 ## Documentation
 
-- [ARCHITECTURE.md](./ARCHITECTURE.md) covers the data flow, sync, undo, and persistence in detail (Chinese).
+- [docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md) covers the data flow, sync, undo, and persistence in detail (Chinese).
 - [docs/adr](./docs/adr) records architecture decisions, starting with single-owner placement.
 - [docs/future](./docs/future) holds open design questions, such as where to store Yjs snapshots.
-- [docs/retrospectives](./docs/retrospectives) holds dated write-ups. The
-  [October 2026 retrospective](./docs/retrospectives/2026-10.md) (Chinese) walks through this round of
-  changes, including how multi-instance sync moved from Redis broadcast to leases with fenced writes, and
-  the bugs found on the way.
 
 ## Contributing
 

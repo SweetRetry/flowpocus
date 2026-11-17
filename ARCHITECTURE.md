@@ -275,6 +275,8 @@ claude mcp add --transport http flowpocus http://localhost:3001/mcp
 
 **owner 模式。** 每个画布同一时刻只在一个实例（owner）上加载。owner 在 `canvas_leases` 表里持有租约，每 10 秒续约一次，30 秒不续即过期。其他实例收到该画布的 WebSocket 时原样转发到 owner；收到 Canvas Command 或 live 读时调用 owner 的 HTTP 接口。决策与回退到 Redis 的条件见 `docs/adr/0001-single-owner-placement.md`。
 
+**路由即占位，卸载不删租约。** 打开文档前先调用 `route`：画布没有存活的 owner 时，它用一条 UPSERT 原子地把租约占给本实例，所以两个实例同时打开同一个画布只会有一个在本地加载。文档卸载后只停止续约，租约在 TTL 内自然过期，期间到达任何实例的连接仍然转发到原 owner。如果改成卸载时删除租约，这条 DELETE 会和同实例重新加载时的占位竞争，可能在加载途中把画布让给别的实例。实例优雅退出时 `close()` 仍会立即删除自己的全部租约。
+
 每个实例需要唯一的 `INSTANCE_ID`，以及其他实例可访问的 `INSTANCE_URL`：
 
 ```bash

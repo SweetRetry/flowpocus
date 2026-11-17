@@ -105,10 +105,9 @@ export function createLeasePlacement({
     },
 
     async release(canvasId) {
+      // Deleting the row would race a reload's claim on another pool connection and
+      // could hand the canvas away mid-load; letting it lapse keeps every write an upsert
       held.delete(canvasId)
-      await db
-        .delete(canvasLeases)
-        .where(and(eq(canvasLeases.canvasId, canvasId), eq(canvasLeases.ownerId, instanceId)))
     },
 
     async close() {

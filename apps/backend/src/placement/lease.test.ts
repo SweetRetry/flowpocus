@@ -160,7 +160,22 @@ describe("createLeasePlacement", () => {
     await Promise.all([a.close(), b.close()])
   })
 
-  it("释放只删除自己的租约，关闭释放全部", async () => {
+  it("卸载释放后，刚被路由到本地的连接仍能加载，别的实例转发过来", async () => {
+    const a = instance("a")
+    const b = instance("b")
+    await a.acquire("canvas-1")
+
+    // A new client lands on A while A is unloading the canvas's previous session
+    assert.deepEqual(await a.route("canvas-1"), { kind: "local" })
+    await a.release("canvas-1")
+
+    // Another client lands on B before A's load claims the lease
+    assert.deepEqual(await b.route("canvas-1"), { kind: "remote", url: "http://a:3001" })
+    assert.equal(await a.acquire("canvas-1"), true)
+    await Promise.all([a.close(), b.close()])
+  })
+
+  it("释放后停止续约，租约到期才能被接管；关闭立即释放全部", async () => {
     const a = instance("a")
     const b = instance("b")
     await a.acquire("canvas-1")
@@ -170,7 +185,11 @@ describe("createLeasePlacement", () => {
     assert.equal(await b.acquire("canvas-1"), false)
 
     await a.release("canvas-1")
+    assert.equal(await b.acquire("canvas-1"), false)
+    await expire("canvas-1")
+    await a.renew()
     assert.equal(await b.acquire("canvas-1"), true)
+    assert.deepEqual(lost, [])
 
     await a.close()
     assert.equal(await b.acquire("canvas-2"), true)

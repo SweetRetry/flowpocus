@@ -48,7 +48,10 @@ function ownershipExtension(placement: CanvasPlacement): Extension {
         throw new Error(`Canvas ${documentName} is owned by another instance`)
       }
     },
-    async afterUnloadDocument({ documentName }) {
+    async afterUnloadDocument({ instance, documentName }) {
+      // A client that arrived during the unload may already be reloading the canvas
+      if (instance.documents.has(documentName) || instance.loadingDocuments.has(documentName))
+        return
       await placement.release(documentName)
     },
   }

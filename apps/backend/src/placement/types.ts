@@ -39,6 +39,11 @@ export interface CanvasPlacement {
    * into. Undefined when the mode needs no fence.
    */
   fence(canvasId: string): SQL | undefined
+  /**
+   * Stop holding a canvas after it unloads. The lease lapses after its ttl rather
+   * than being deleted, so the canvas stays routed here until then and a reload
+   * on this instance cannot lose it. Do not call while the canvas is loaded or loading.
+   */
   release(canvasId: string): Promise<void>
   /** Stop renewing and release everything this instance owns. */
   close(): Promise<void>

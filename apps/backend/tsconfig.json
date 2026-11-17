@@ -10,7 +10,7 @@
     "resolveJsonModule": true,
     "isolatedModules": true,
     "rootDir": "src",
-    "types": ["node"],
+    "types": ["bun"],
     "noEmit": true,
     "allowImportingTsExtensions": true
   },

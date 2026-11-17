@@ -8,18 +8,18 @@
 | **图形编辑器** | @xyflow/react (React Flow) |
 | **CRDT 算法** | Yjs |
 | **WebSocket 客户端** | @hocuspocus/provider |
-| **后端框架** | Hono on Node.js (@hono/node-server + ws) |
+| **后端框架** | Elysia on Bun（原生 WebSocket） |
 | **协同服务器** | Hocuspocus 4 |
 | **数据库** | PostgreSQL (node-postgres) + Drizzle ORM |
 | **多实例** | 默认每个画布单一 owner（数据库租约 + 实例间转发），可选 Redis Pub/Sub |
-| **构建** | Turborepo；backend 与 CLI 用 tsdown 打包 |
+| **构建** | Turborepo；backend 用 `bun build`，CLI 用 tsdown 打包 |
 
 ## 目录结构
 
 ```
 flowpocus/
 ├── apps/
-│   ├── backend/                     # Hono + Hocuspocus 后端
+│   ├── backend/                     # Elysia (Bun) + Hocuspocus 后端
 │   │   └── src/
 │   │       ├── index.ts             # 入口 (HTTP + WebSocket 接入)
 │   │       ├── commands/            # Server-owned Canvas Commands
@@ -29,7 +29,7 @@ flowpocus/
 │   │       │   └── hocuspocus.ts    # 鉴权、owner 租约、Database extension、持久化
 │   │       ├── mcp/
 │   │       │   └── server.ts        # 由 command contract 生成 MCP tools
-│   │       ├── routes/              # Hono API 路由
+│   │       ├── routes/              # Elysia API 路由
 │   │       │   ├── health.ts
 │   │       │   ├── canvases.ts      # Canvas CRUD
 │   │       │   ├── commands.ts      # Command discovery/execute HTTP adapter
@@ -126,26 +126,30 @@ await db.update(canvases).set({
 
 ### 4. WebSocket 接入
 
-`@hono/node-server` 2 自带 WebSocket 支持，`serve({ websocket: { server: wss } })` 配合
-`upgradeWebSocket` 完成升级。Hocuspocus 4 的 `handleConnection` 接收 web 标准 `Request`，
-并把消息与关闭事件交给集成方转发：
+后端跑在 Bun 上，`/collaboration/:canvasId` 由 Elysia 的 `.ws()` 直接使用 Bun 原生
+WebSocket，不经过 `ws` 兼容层。Hocuspocus 4 的 `handleConnection` 只要求 socket 具备
+`send`/`close`/`readyState`，Bun 的 `ServerWebSocket` 原样满足；它接收 web 标准 `Request`，
+并把消息与关闭事件交给集成方转发。
+
+Elysia 的 ws handler 被所有连接共享，所以每条连接的状态挂在 `ws.raw` 上（`WeakMap`）。
+定位 owner 是异步的，帧先排在一个 `Promise<Peer>` 后面，保证顺序：
 
 ```typescript
-upgradeWebSocket((c) => {
-  let connection: ReturnType<Hocuspocus["handleConnection"]> | undefined
-  return {
-    onOpen(_event, ws) {
-      connection = hocuspocus.handleConnection(ws.raw, c.req.raw, { documentName, token })
-    },
-    onMessage(event) {
-      connection?.handleMessage(new Uint8Array(event.data as ArrayBuffer))
-    },
-    onClose(event) {
-      connection?.handleClose({ code: event.code, reason: event.reason })
-    },
-  }
+.ws("/collaboration/:canvasId", {
+  open(ws) {
+    // 本地 owner → hocuspocus.handleConnection(ws.raw, request, ...)；远端 owner → relayToOwner
+    peers.set(ws.raw, openPeer(ws.raw, ws.data.request, ws.data.params.canvasId, token))
+  },
+  message(ws, message) {
+    forward(ws.raw, (peer) => peer.send(message))
+  },
+  close(ws, code, reason) {
+    forward(ws.raw, (peer) => peer.close(code, reason))
+  },
 })
 ```
+
+Hocuspocus 3 只接受 `ws` 库的 socket，这是早期在 Bun 上跑不起来的原因；Hocuspocus 4 去掉了这个限制。
 
 Hocuspocus 4 不再发送 WebSocket 层 ping，连接靠入站消息保活。客户端 awareness 约每 15 秒
 续期一次，低于服务端 30 秒的空闲超时。

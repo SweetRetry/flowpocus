@@ -1,7 +1,7 @@
 import { createCanvasId } from "@workspace/commands"
 import { type CanvasEdge, type CanvasNode, canvases, db } from "@workspace/database"
 import { eq } from "drizzle-orm"
-import { Hono } from "hono"
+import { Elysia } from "elysia"
 import { z } from "zod"
 import { CanvasCommandError, readCanvasDocument } from "../commands"
 import { createLogger } from "../lib/logger"
@@ -19,13 +19,13 @@ const updateCanvasSchema = z.object({
   description: z.string().optional(),
 })
 
-export const canvasRoutes = new Hono()
+export const canvasRoutes = new Elysia({ prefix: "/api/canvases" })
   /**
    * List all canvases (with pagination)
    */
-  .get("/", async (c) => {
-    const limit = Math.min(Number(c.req.query("limit")) || 20, 100)
-    const offset = Number(c.req.query("offset")) || 0
+  .get("", async ({ query }) => {
+    const limit = Math.min(Number(query.limit) || 20, 100)
+    const offset = Number(query.offset) || 0
 
     const results = await db.query.canvases.findMany({
       limit,
@@ -42,14 +42,14 @@ export const canvasRoutes = new Hono()
       },
     })
 
-    return c.json({
+    return {
       data: results.map((canvas) => ({
         ...canvas,
         createdAt: canvas.createdAt.toISOString(),
         updatedAt: canvas.updatedAt.toISOString(),
       })),
       pagination: { limit, offset },
-    })
+    }
   })
 
   /**
@@ -57,44 +57,43 @@ export const canvasRoutes = new Hono()
    * For real-time collaboration, connect via WebSocket instead
    */
   // Live Y.Doc state from the owner instance; GET /:id returns the debounced read model
-  .get("/:id/document", async (c) => {
+  .get("/:id/document", async ({ params, status }) => {
     try {
-      return c.json(await readCanvasDocument(c.req.param("id")))
+      return await readCanvasDocument(params.id)
     } catch (error) {
       if (error instanceof CanvasCommandError) {
-        return c.json({ error: { code: error.code, message: error.message } }, error.status)
+        return status(error.status, { error: { code: error.code, message: error.message } })
       }
       throw error
     }
   })
 
-  .get("/:id", async (c) => {
-    const canvasId = c.req.param("id")
+  .get("/:id", async ({ params, status }) => {
+    const canvasId = params.id
 
     const canvas = await db.query.canvases.findFirst({
       where: eq(canvases.id, canvasId),
     })
 
     if (!canvas) {
-      return c.json({ error: "Canvas not found" }, 404)
+      return status(404, { error: "Canvas not found" })
     }
 
-    return c.json({
+    return {
       ...canvas,
       createdAt: canvas.createdAt.toISOString(),
       updatedAt: canvas.updatedAt.toISOString(),
-    })
+    }
   })
 
   /**
    * Create new canvas
    */
-  .post("/", async (c) => {
-    const body = await c.req.json()
+  .post("", async ({ body, status }) => {
     const parsed = createCanvasSchema.safeParse(body)
 
     if (!parsed.success) {
-      return c.json({ error: "Invalid request", details: parsed.error.flatten() }, 400)
+      return status(400, { error: "Invalid request", details: parsed.error.flatten() })
     }
 
     const id = createCanvasId()
@@ -117,26 +116,22 @@ export const canvasRoutes = new Hono()
 
     logger.info({ canvasId: id }, "Canvas created")
 
-    return c.json(
-      {
-        ...newCanvas,
-        createdAt: newCanvas.createdAt.toISOString(),
-        updatedAt: newCanvas.updatedAt.toISOString(),
-      },
-      201
-    )
+    return status(201, {
+      ...newCanvas,
+      createdAt: newCanvas.createdAt.toISOString(),
+      updatedAt: newCanvas.updatedAt.toISOString(),
+    })
   })
 
   /**
    * Update canvas metadata (not content - use WebSocket for that)
    */
-  .patch("/:id", async (c) => {
-    const canvasId = c.req.param("id")
-    const body = await c.req.json()
+  .patch("/:id", async ({ params, body, status }) => {
+    const canvasId = params.id
     const parsed = updateCanvasSchema.safeParse(body)
 
     if (!parsed.success) {
-      return c.json({ error: "Invalid request", details: parsed.error.flatten() }, 400)
+      return status(400, { error: "Invalid request", details: parsed.error.flatten() })
     }
 
     const existing = await db.query.canvases.findFirst({
@@ -145,7 +140,7 @@ export const canvasRoutes = new Hono()
     })
 
     if (!existing) {
-      return c.json({ error: "Canvas not found" }, 404)
+      return status(404, { error: "Canvas not found" })
     }
 
     await db
@@ -163,21 +158,21 @@ export const canvasRoutes = new Hono()
     })
 
     if (!updated) {
-      return c.json({ error: "Canvas not found after update" }, 404)
+      return status(404, { error: "Canvas not found after update" })
     }
 
-    return c.json({
+    return {
       ...updated,
       createdAt: updated.createdAt.toISOString(),
       updatedAt: updated.updatedAt.toISOString(),
-    })
+    }
   })
 
   /**
    * Delete canvas
    */
-  .delete("/:id", async (c) => {
-    const canvasId = c.req.param("id")
+  .delete("/:id", async ({ params, status }) => {
+    const canvasId = params.id
 
     const existing = await db.query.canvases.findFirst({
       where: eq(canvases.id, canvasId),
@@ -185,12 +180,12 @@ export const canvasRoutes = new Hono()
     })
 
     if (!existing) {
-      return c.json({ error: "Canvas not found" }, 404)
+      return status(404, { error: "Canvas not found" })
     }
 
     await db.delete(canvases).where(eq(canvases.id, canvasId))
 
     logger.info({ canvasId }, "Canvas deleted")
 
-    return c.json({ success: true })
+    return { success: true }
   })

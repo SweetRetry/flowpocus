@@ -1,13 +1,9 @@
-import type { Hocuspocus } from "@hocuspocus/server"
-import type { HttpBindings } from "@hono/node-server"
-import { serve, upgradeWebSocket } from "@hono/node-server"
-import { swaggerUI } from "@hono/swagger-ui"
+import { cors } from "@elysiajs/cors"
+import { openapi } from "@elysiajs/openapi"
+import type { WebSocketLike } from "@hocuspocus/server"
 import { db } from "@workspace/database"
-import { Hono } from "hono"
-import { cors } from "hono/cors"
-import { logger as honoLogger } from "hono/logger"
-import type { WSEvents } from "hono/ws"
-import { WebSocket, WebSocketServer } from "ws"
+import { Elysia } from "elysia"
+import { z } from "zod"
 import {
   getHocuspocus,
   getPlacement,
@@ -22,171 +18,157 @@ const logger = createLogger("server")
 // Initialize Hocuspocus collaboration server
 const hocuspocus = initializeHocuspocus()
 
-// Create Hono app with Node.js bindings for WebSocket access
-const app = new Hono<{ Bindings: HttpBindings }>()
+/** Where a client socket's frames go once the canvas owner is known. */
+interface Peer {
+  send(data: Uint8Array): void
+  close(code: number, reason: string): void
+}
 
-// Apply middleware
-app
-  .use("*", cors())
-  .use("*", honoLogger())
+/**
+ * One entry per open client socket. Locating the owner is async, so frames that
+ * arrive before it resolves chain on the promise and keep their order.
+ */
+const peers = new WeakMap<WebSocketLike, Promise<Peer>>()
 
-  // API routes
-  .route("/health", healthRoutes)
-  .route("/api/canvases", canvasRoutes)
-  .route("/api/commands", commandRoutes)
-  .route("/mcp", mcpRoutes)
+function forward(socket: WebSocketLike, use: (peer: Peer) => void) {
+  // A failed relay already closed the client socket; drop whatever was queued behind it
+  peers.get(socket)?.then(use, () => {})
+}
 
-  // OpenAPI documentation UI
-  .get("/docs", swaggerUI({ url: "/openapi.json" }))
-  .get("/openapi.json", (c) =>
-    c.json({
-      openapi: "3.0.0",
-      info: {
-        title: "Flowpocus API",
-        version: "0.0.1",
-        description: "Real-time collaborative canvas API",
-      },
-      paths: {
-        "/health": {
-          get: {
-            summary: "Health check",
-            responses: {
-              200: { description: "Server is healthy" },
-            },
-          },
-        },
-        "/api/canvases": {
-          get: { summary: "List canvases" },
-          post: { summary: "Create canvas" },
-        },
-        "/api/canvases/{id}/document": {
-          get: { summary: "Read the live canvas document from its owner instance" },
-        },
-        "/api/canvases/{id}": {
-          get: { summary: "Get canvas by ID" },
-          patch: { summary: "Update canvas metadata" },
-          delete: { summary: "Delete canvas" },
-        },
-        "/api/commands": {
-          get: { summary: "List server-owned canvas commands" },
-        },
-        "/api/commands/{canvasId}": {
-          post: { summary: "Execute a canvas command through a direct connection" },
-        },
-        "/mcp": {
-          post: { summary: "MCP Streamable HTTP endpoint (stateless, JSON responses)" },
-        },
-        "/collaboration/{canvasId}": {
-          get: { summary: "WebSocket endpoint for real-time collaboration" },
-        },
-      },
-    })
-  )
+async function openPeer(
+  socket: WebSocketLike,
+  request: Request,
+  canvasId: string,
+  token: string | undefined
+): Promise<Peer> {
+  const location = await getPlacement()?.locate(canvasId)
+  if (location?.kind === "remote") {
+    return relayToOwner(
+      socket,
+      `${location.url}/collaboration/${encodeURIComponent(canvasId)}`,
+      token
+    )
+  }
 
-  // WebSocket collaboration endpoint
-  .get(
-    "/collaboration/:canvasId",
-    upgradeWebSocket(async (c) => {
-      // upgradeWebSocket types the context without the route's params; the pattern guarantees it
-      const canvasId = c.req.param("canvasId") as string
-      const token = c.req.query("token") ?? c.req.header("Authorization")
+  const hocuspocusServer = getHocuspocus()
+  if (!hocuspocusServer) {
+    socket.close(1011, "Collaboration server not initialized")
+    throw new Error("Collaboration server not initialized")
+  }
 
-      const location = await getPlacement()?.locate(canvasId)
-      if (location?.kind === "remote") {
-        return relayToOwner(`${location.url}/collaboration/${encodeURIComponent(canvasId)}`, token)
-      }
+  logger.debug({ canvasId }, "WebSocket connection opened")
 
-      let connection: ReturnType<Hocuspocus["handleConnection"]> | undefined
-
-      return {
-        onOpen(_event, ws) {
-          const hocuspocusServer = getHocuspocus()
-          if (!hocuspocusServer || !ws.raw) {
-            ws.close(1011, "Collaboration server not initialized")
-            return
-          }
-
-          logger.debug({ canvasId }, "WebSocket connection opened")
-
-          // Hocuspocus 4 takes a web Request and leaves message/close forwarding to the integration
-          connection = hocuspocusServer.handleConnection(ws.raw, c.req.raw, {
-            documentName: canvasId,
-            token,
-          })
-        },
-        onMessage(event) {
-          if (event.data instanceof ArrayBuffer) {
-            connection?.handleMessage(new Uint8Array(event.data))
-          }
-        },
-        onClose(event) {
-          connection?.handleClose({ code: event.code, reason: event.reason })
-        },
-      }
-    })
-  )
-
-  // Root endpoint
-  .get("/", (c) => c.json({ message: "Flowpocus API", version: "0.0.1" }))
+  // Hocuspocus 4 accepts Bun's ServerWebSocket and leaves message/close forwarding to the integration
+  const connection = hocuspocusServer.handleConnection(socket, request, {
+    documentName: canvasId,
+    token,
+  })
+  return {
+    send: (data) => connection.handleMessage(data),
+    close: (code, reason) => connection.handleClose({ code, reason }),
+  }
+}
 
 /**
  * Pipe a client socket to the canvas owner's collaboration endpoint, so any
  * instance can accept a connection without loading a second copy of the Y.Doc.
+ * Resolves once the upstream socket is open, so queued frames flush in order.
  */
-function relayToOwner(ownerUrl: string, token: string | undefined): WSEvents {
+function relayToOwner(
+  socket: WebSocketLike,
+  ownerUrl: string,
+  token: string | undefined
+): Promise<Peer> {
   const target = new URL(ownerUrl.replace(/^http/, "ws"))
   if (token) target.searchParams.set("token", token)
 
-  let upstream: WebSocket | undefined
-  const pending: ArrayBuffer[] = []
+  logger.debug({ target: target.pathname }, "Relaying WebSocket to canvas owner")
+  const upstream = new WebSocket(target)
+  upstream.binaryType = "arraybuffer"
 
-  return {
-    onOpen(_event, ws) {
-      logger.debug({ target: target.pathname }, "Relaying WebSocket to canvas owner")
-      upstream = new WebSocket(target)
-      upstream.on("open", () => {
-        for (const message of pending.splice(0)) upstream?.send(message)
+  return new Promise((resolve, reject) => {
+    upstream.addEventListener("open", () =>
+      resolve({
+        send: (data) => upstream.send(data),
+        close: () => upstream.close(),
       })
-      upstream.on("message", (data: Buffer) => ws.send(new Uint8Array(data)))
+    )
+    upstream.addEventListener("message", (event) => {
+      socket.send(new Uint8Array(event.data as ArrayBuffer))
+    })
+    upstream.addEventListener("close", (event) => {
       // 1005/1006 are reserved for "no status" and may not be sent; report them as a server error
-      upstream.on("close", (code, reason) =>
-        ws.close(code === 1005 || code === 1006 ? 1011 : code, reason.toString())
-      )
-      upstream.on("error", (error) => {
-        logger.warn({ error: error.message, target: target.pathname }, "Canvas owner unreachable")
-        ws.close(1011, "Canvas owner unreachable")
-      })
-    },
-    onMessage(event) {
-      if (!(event.data instanceof ArrayBuffer)) return
-      if (upstream?.readyState === WebSocket.OPEN) upstream.send(event.data)
-      else pending.push(event.data)
-    },
-    onClose() {
-      upstream?.close()
-    },
-  }
+      const code = event.code === 1005 || event.code === 1006 ? 1011 : event.code
+      socket.close(code, event.reason)
+    })
+    upstream.addEventListener("error", () => {
+      logger.warn({ target: target.pathname }, "Canvas owner unreachable")
+      socket.close(1011, "Canvas owner unreachable")
+      reject(new Error("Canvas owner unreachable"))
+    })
+  })
 }
+
+const app = new Elysia()
+  .use(cors())
+  .use(
+    openapi({
+      path: "/docs",
+      specPath: "/openapi.json",
+      documentation: {
+        info: {
+          title: "Flowpocus API",
+          version: "0.0.1",
+          description: "Real-time collaborative canvas API",
+        },
+      },
+      mapJsonSchema: { zod: z.toJSONSchema },
+    })
+  )
+  .onAfterResponse(({ request, set }) => {
+    logger.info({ method: request.method, path: new URL(request.url).pathname, status: set.status })
+  })
+  .use(healthRoutes)
+  .use(canvasRoutes)
+  .use(commandRoutes)
+  .use(mcpRoutes)
+  .ws("/collaboration/:canvasId", {
+    detail: { summary: "WebSocket endpoint for real-time collaboration" },
+    open(ws) {
+      const { params, query, request } = ws.data
+      const token = query.token ?? request.headers.get("Authorization") ?? undefined
+      const peer = openPeer(ws.raw, request, params.canvasId, token)
+      // Rejections are reported by the socket close; keep them from surfacing as unhandled
+      peer.catch(() => {})
+      peers.set(ws.raw, peer)
+    },
+    message(ws, message) {
+      if (!(message instanceof Uint8Array)) return
+      forward(ws.raw, (peer) => peer.send(message))
+    },
+    close(ws, code, reason) {
+      forward(ws.raw, (peer) => peer.close(code, reason))
+      peers.delete(ws.raw)
+    },
+  })
+  .get("/", () => ({ message: "Flowpocus API", version: "0.0.1" }))
 
 // Export app type for API client type inference
 export type AppType = typeof app
 
-// Start server
 const PORT = Number(process.env.PORT) || 3001
 
-const wss = new WebSocketServer({ noServer: true })
-
-const server = serve({ fetch: app.fetch, port: PORT, websocket: { server: wss } }, (info) => {
-  logger.info(`Server running at http://localhost:${info.port}`)
-  logger.info(`API docs available at http://localhost:${info.port}/docs`)
-  logger.info(`MCP endpoint at http://localhost:${info.port}/mcp`)
-  logger.info(`WebSocket collaboration at ws://localhost:${info.port}/collaboration/{canvasId}`)
+app.listen(PORT, (server) => {
+  logger.info(`Server running at http://localhost:${server.port}`)
+  logger.info(`API docs available at http://localhost:${server.port}/docs`)
+  logger.info(`MCP endpoint at http://localhost:${server.port}/mcp`)
+  logger.info(`WebSocket collaboration at ws://localhost:${server.port}/collaboration/{canvasId}`)
 
   // Trigger Hocuspocus onListen hook
   hocuspocus.hooks("onListen", {
     instance: hocuspocus,
     configuration: hocuspocus.configuration,
-    port: info.port,
+    port: server.port ?? PORT,
   })
 })
 
@@ -197,7 +179,7 @@ async function shutdown() {
   await shutdownHocuspocus()
   await db.$client.end()
 
-  server.close()
+  await app.stop()
   logger.info("Shutdown complete")
   process.exit(0)
 }

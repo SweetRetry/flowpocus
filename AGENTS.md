@@ -29,7 +29,8 @@ Keep transports thin. A new command is a definition in `packages/commands/src/ca
 - Browser writes run inside `ydoc.transact(..., clientId)`. The observer skips its own origin and the `UndoManager` tracks only that origin, so a write with any other origin echoes back into React Flow and escapes undo.
 - A canvas's live Y.Doc loads on one owner instance only (`apps/backend/src/placement`, `docs/adr/0001-single-owner-placement.md`). Code that opens a document must check `locate` first and forward when the owner is remote, as `apps/backend/src/commands/service.ts` does.
 - A replayed `commandId` with the same payload returns the receipt stored in the `_serverCommands` Y.Map with `replayed: true`. The same ID with a different payload is rejected. Preserve both behaviours when you touch executors.
-- `packages/database` ships TypeScript source that Node runs directly with type stripping (`pnpm start` loads it unbundled). Relative imports need explicit `.ts` extensions and only erasable syntax is allowed; its tsconfig enforces both.
+- `packages/database` ships TypeScript source that runtimes load directly (Bun for the backend, Node type stripping for tooling). Relative imports need explicit `.ts` extensions and only erasable syntax is allowed; its tsconfig enforces both.
+- The backend runs on Bun (`.bun-version`): Elysia serves HTTP and Bun-native WebSockets. `bun test --parallel` runs each test file in its own worker, which `useTestDatabase` relies on because `@workspace/database` holds a singleton pool.
 - Theme React Flow through the non-default `--xy-*` variables in `packages/ui/src/styles/globals.css`. The `-default` variables lose to React Flow's own stylesheet, which loads later.
 
 ## Verify

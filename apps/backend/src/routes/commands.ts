@@ -1,50 +1,43 @@
 import { canvasCommandRequestSchema, listCanvasCommandDefinitions } from "@workspace/commands"
-import { Hono } from "hono"
+import { Elysia } from "elysia"
 import { CanvasCommandError, executeCanvasCommand } from "../commands"
 
-export const commandRoutes = new Hono()
-  .get("/", (c) => c.json({ data: listCanvasCommandDefinitions() }))
-  .post("/:canvasId", async (c) => {
-    try {
-      const body = await c.req.json()
+export const commandRoutes = new Elysia({ prefix: "/api/commands" })
+  .get("", () => ({ data: listCanvasCommandDefinitions() }))
+  .post(
+    "/:canvasId",
+    async ({ params, request, status }) => {
+      let body: unknown
+      try {
+        body = await request.json()
+      } catch {
+        return status(400, {
+          error: { code: "INVALID_JSON", message: "Request body must be valid JSON" },
+        })
+      }
+
       const parsed = canvasCommandRequestSchema.safeParse(body)
-
       if (!parsed.success) {
-        return c.json(
-          {
-            error: {
-              code: "INVALID_REQUEST",
-              message: "Invalid command request",
-              details: parsed.error.flatten(),
-            },
+        return status(400, {
+          error: {
+            code: "INVALID_REQUEST",
+            message: "Invalid command request",
+            details: parsed.error.flatten(),
           },
-          400
-        )
+        })
       }
 
-      const receipt = await executeCanvasCommand(c.req.param("canvasId"), parsed.data)
-      return c.json(receipt)
-    } catch (error) {
-      if (error instanceof CanvasCommandError) {
-        return c.json(
-          {
-            error: {
-              code: error.code,
-              message: error.message,
-              details: error.details,
-            },
-          },
-          error.status
-        )
+      try {
+        return await executeCanvasCommand(params.canvasId, parsed.data)
+      } catch (error) {
+        if (error instanceof CanvasCommandError) {
+          return status(error.status, {
+            error: { code: error.code, message: error.message, details: error.details },
+          })
+        }
+        throw error
       }
-
-      if (error instanceof SyntaxError) {
-        return c.json(
-          { error: { code: "INVALID_JSON", message: "Request body must be valid JSON" } },
-          400
-        )
-      }
-
-      throw error
-    }
-  })
+    },
+    // Read the body ourselves so malformed JSON maps to INVALID_JSON instead of Elysia's parse error
+    { parse: "none" }
+  )

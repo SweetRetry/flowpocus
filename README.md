@@ -25,18 +25,19 @@ canvas commands. Built on React Flow, Yjs, and Hocuspocus.
 | Node Editor | [React Flow](https://reactflow.dev/) |
 | Real-time Sync | [Yjs](https://yjs.dev/) + [Hocuspocus](https://hocuspocus.dev/) |
 | Frontend | [Next.js](https://nextjs.org/) 16 + React 19 |
-| Backend | [Hono](https://hono.dev/) on Node.js |
+| Backend | [Elysia](https://elysiajs.com/) on [Bun](https://bun.sh/) |
 | Database | [PostgreSQL](https://www.postgresql.org/) ([node-postgres](https://node-postgres.com/)) + [Drizzle ORM](https://orm.drizzle.team/) |
 | UI Components | [shadcn/ui](https://ui.shadcn.com/) on [Base UI](https://base-ui.com/) |
 | Styling | [Tailwind CSS](https://tailwindcss.com/) v4 |
-| Build System | [Turborepo](https://turborepo.com/), [tsdown](https://tsdown.dev/) for the backend and CLI |
+| Build System | [Turborepo](https://turborepo.com/), `bun build` for the backend, [tsdown](https://tsdown.dev/) for the CLI |
 | Package Manager | [pnpm](https://pnpm.io/) |
 
 ## Getting Started
 
 ### Prerequisites
 
-- Node.js >= 24 (see `.node-version`)
+- Node.js >= 24 (see `.node-version`) for the web app and CLI
+- Bun 1.4+ (see `.bun-version`) for the backend
 - pnpm 12 (pinned in `packageManager`; Corepack or a recent pnpm picks it up)
 - PostgreSQL 16+ (`docker compose up -d` starts one with the default credentials)
 
@@ -77,7 +78,7 @@ Open `http://localhost:3000/canvas` (redirects to the `showcase` canvas) or
 # NEXT_PUBLIC_WS_URL is inlined at build time
 NEXT_PUBLIC_WS_URL=wss://your-host/collaboration pnpm build
 
-pnpm --filter @workspace/backend start   # node dist/index.js
+pnpm --filter @workspace/backend start   # bun dist/index.js
 pnpm --filter web start                  # next start
 ```
 
@@ -146,7 +147,7 @@ claude mcp add --transport http flowpocus http://localhost:3001/mcp
 flowpocus/
 ├── apps/
 │   ├── web/                # Next.js frontend
-│   ├── backend/            # Hono + Hocuspocus + server-owned commands + MCP
+│   ├── backend/            # Elysia on Bun + Hocuspocus + server-owned commands + MCP
 │   └── cli/                # Agent-facing server API client
 ├── packages/
 │   ├── commands/           # Shared Zod command contracts

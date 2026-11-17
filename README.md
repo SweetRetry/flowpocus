@@ -36,7 +36,7 @@ canvas commands. Built on React Flow, Yjs, and Hocuspocus.
 
 ### Prerequisites
 
-- Node.js >= 24 (see `.node-version`) for the web app and CLI
+- Node.js >= 26 (see `.node-version`) for the web app and CLI
 - Bun 1.4+ (see `.bun-version`) for the backend
 - pnpm 12 (pinned in `packageManager`; Corepack or a recent pnpm picks it up)
 - PostgreSQL 16+ (`docker compose up -d` starts one with the default credentials)

@@ -2,8 +2,6 @@
 
 import {
   addEdge,
-  applyEdgeChanges,
-  applyNodeChanges,
   Background,
   Controls,
   type Edge,
@@ -19,7 +17,7 @@ import {
   SelectionMode,
 } from "@xyflow/react"
 import { useCallback, useRef } from "react"
-import "@xyflow/react/dist/style.css"
+import "@xyflow/react/style.css"
 
 import { ImageNode, TextNode, VideoNode } from "@workspace/canvas/components/nodes"
 import {
@@ -101,12 +99,12 @@ export function CanvasEditor({
 
   // Node change handlers
   const onNodesChange: OnNodesChange = useCallback(
-    (changes) => updateNodes(applyNodeChanges(changes, nodes)),
+    (changes) => updateNodes(changes.applyTo(nodes)),
     [nodes, updateNodes]
   )
 
   const onEdgesChange: OnEdgesChange = useCallback(
-    (changes) => updateEdges(applyEdgeChanges(changes, edges)),
+    (changes) => updateEdges(changes.applyTo(edges)),
     [edges, updateEdges]
   )
 
@@ -202,7 +200,6 @@ export function CanvasEditor({
           reactFlowRef.current = instance
         }}
         fitView
-        elevateEdgesOnSelect={false}
         proOptions={{ hideAttribution: true }}
         selectionOnDrag
         selectionMode={SelectionMode.Partial}

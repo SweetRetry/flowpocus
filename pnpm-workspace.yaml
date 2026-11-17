@@ -9,3 +9,7 @@ allowBuilds:
   "@tailwindcss/oxide": false
   core-js-pure: false
   sharp: false
+
+minimumReleaseAgeExclude:
+  - "@xyflow/react@13.0.1"
+  - "@xyflow/system@1.0.0"

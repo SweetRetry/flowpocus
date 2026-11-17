@@ -31,7 +31,7 @@ Keep transports thin. A new command is a definition in `packages/commands/src/ca
 - A replayed `commandId` with the same payload returns the receipt stored in the `_serverCommands` Y.Map with `replayed: true`. The same ID with a different payload is rejected. Preserve both behaviours when you touch executors.
 - `packages/database` ships TypeScript source that runtimes load directly (Bun for the backend, Node type stripping for tooling). Relative imports need explicit `.ts` extensions and only erasable syntax is allowed; its tsconfig enforces both.
 - The backend runs on Bun (`.bun-version`): Elysia serves HTTP and Bun-native WebSockets. `bun test --parallel` runs each test file in its own worker, which `useTestDatabase` relies on because `@workspace/database` holds a singleton pool.
-- Theme React Flow through the non-default `--xy-*` variables in `packages/ui/src/styles/globals.css`. The `-default` variables lose to React Flow's own stylesheet, which loads later.
+- Theme React Flow through the non-default `--xy-*` variables in `packages/ui/src/styles/globals.css`. React Flow keeps its own `-default` values in the `xyflow` CSS layer, ranked by the `@layer` order at the top of that file.
 
 ## Verify
 

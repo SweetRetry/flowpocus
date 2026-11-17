@@ -1,3 +1,6 @@
+/* React Flow 13 puts its styles in the xyflow layer. Rank it above Tailwind's preflight and below utilities, as the React Flow theming guide recommends. */
+@layer theme, base, xyflow, components, utilities;
+
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";

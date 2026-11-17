@@ -1,6 +1,6 @@
 "use client"
 
-import { useStore, ViewportPortal } from "@xyflow/react"
+import { useViewportStore, ViewportPortal } from "@xyflow/react"
 import type { UserPresence } from "../../types/collaboration"
 import { PresenceAvatar } from "./presence-avatar"
 
@@ -19,7 +19,7 @@ const GLIDE: Record<UserPresence["kind"], string> = {
  * same spot of the canvas while the viewport pans and zooms.
  */
 export function UserCursors({ users }: UserCursorsProps) {
-  const zoom = useStore((state) => state.transform[2])
+  const zoom = useViewportStore((state) => state.transform[2])
 
   return (
     <ViewportPortal>

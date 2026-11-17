@@ -55,8 +55,24 @@ describe("createLeasePlacement", () => {
   it("未被持有的画布在任何实例上都定位为本地", async () => {
     const a = instance("a")
 
-    assert.deepEqual(await a.locate("canvas-1"), { kind: "local" })
+    assert.deepEqual(await a.route("canvas-1"), { kind: "local" })
     await a.close()
+  })
+
+  it("两个实例同时打开未被持有的画布，只有一个在本地服务，另一个转发给它", async () => {
+    const a = instance("a")
+    const b = instance("b")
+
+    const routes = await Promise.all([a.route("canvas-1"), b.route("canvas-1")])
+
+    const local = routes.filter((route) => route.kind === "local")
+    assert.equal(local.length, 1)
+    const owner = routes[0].kind === "local" ? "http://a:3001" : "http://b:3001"
+    assert.deepEqual(
+      routes.find((route) => route.kind === "remote"),
+      { kind: "remote", url: owner }
+    )
+    await Promise.all([a.close(), b.close()])
   })
 
   it("一个实例持有后，另一个实例定位到它并且无法抢占", async () => {
@@ -65,8 +81,8 @@ describe("createLeasePlacement", () => {
 
     assert.equal(await a.acquire("canvas-1"), true)
 
-    assert.deepEqual(await b.locate("canvas-1"), { kind: "remote", url: "http://a:3001" })
-    assert.deepEqual(await a.locate("canvas-1"), { kind: "local" })
+    assert.deepEqual(await b.route("canvas-1"), { kind: "remote", url: "http://a:3001" })
+    assert.deepEqual(await a.route("canvas-1"), { kind: "local" })
     assert.equal(await b.acquire("canvas-1"), false)
     assert.equal(await fencedWrite(b, "canvas-1"), false)
     assert.equal(await fencedWrite(a, "canvas-1"), true)
@@ -79,14 +95,14 @@ describe("createLeasePlacement", () => {
     await a.acquire("canvas-1")
 
     await expire("canvas-1")
-    assert.deepEqual(await b.locate("canvas-1"), { kind: "local" })
+    assert.deepEqual(await b.route("canvas-1"), { kind: "local" })
     assert.equal(await b.acquire("canvas-1"), true)
     await a.renew()
 
     assert.deepEqual(lost, ["a:canvas-1"])
     assert.equal(await fencedWrite(a, "canvas-1"), false)
     assert.equal(await fencedWrite(b, "canvas-1"), true)
-    assert.deepEqual(await a.locate("canvas-1"), { kind: "remote", url: "http://b:3001" })
+    assert.deepEqual(await a.route("canvas-1"), { kind: "remote", url: "http://b:3001" })
     await Promise.all([a.close(), b.close()])
   })
 

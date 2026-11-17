@@ -48,39 +48,45 @@ export function createLeasePlacement({
     }
   }
 
+  /**
+   * Take the lease when it is free, expired, or already ours, in one statement so
+   * concurrent claims from different instances cannot both win. Not renewed until
+   * `acquire` adds it to `held`, so a claim whose document never loads lapses after ttl.
+   */
+  async function claim(canvasId: string): Promise<boolean> {
+    const claimed = await db
+      .insert(canvasLeases)
+      .values({ canvasId, ownerId: instanceId, ownerUrl: instanceUrl, expiresAt })
+      .onConflictDoUpdate({
+        target: canvasLeases.canvasId,
+        set: { ownerId: instanceId, ownerUrl: instanceUrl, expiresAt },
+        setWhere: or(eq(canvasLeases.ownerId, instanceId), lt(canvasLeases.expiresAt, sql`now()`)),
+      })
+      .returning({ canvasId: canvasLeases.canvasId })
+    return claimed.length > 0
+  }
+
   const timer = setInterval(() => {
     renew().catch((error) => logger.error({ error }, "Lease renewal failed"))
   }, ttlMs / 3)
   timer.unref()
 
   return {
-    async locate(canvasId): Promise<CanvasLocation> {
-      const lease = await db.query.canvasLeases.findFirst({
-        where: and(eq(canvasLeases.canvasId, canvasId), gt(canvasLeases.expiresAt, sql`now()`)),
-      })
-      if (!lease || lease.ownerId === instanceId) return { kind: "local" }
-      return { kind: "remote", url: lease.ownerUrl }
+    async route(canvasId): Promise<CanvasLocation> {
+      // Claim and lookup race against other instances' claims; a lease that vanishes
+      // between them (released or expired) is free again, so claim once more
+      for (let attempt = 0; attempt < 3; attempt++) {
+        if (await claim(canvasId)) return { kind: "local" }
+        const lease = await db.query.canvasLeases.findFirst({
+          where: and(eq(canvasLeases.canvasId, canvasId), gt(canvasLeases.expiresAt, sql`now()`)),
+        })
+        if (lease) return { kind: "remote", url: lease.ownerUrl }
+      }
+      throw new Error(`Could not route canvas ${canvasId}: its lease kept changing hands`)
     },
 
     async acquire(canvasId) {
-      const claimed = await db
-        .insert(canvasLeases)
-        .values({
-          canvasId,
-          ownerId: instanceId,
-          ownerUrl: instanceUrl,
-          expiresAt,
-        })
-        .onConflictDoUpdate({
-          target: canvasLeases.canvasId,
-          set: { ownerId: instanceId, ownerUrl: instanceUrl, expiresAt },
-          setWhere: or(
-            eq(canvasLeases.ownerId, instanceId),
-            lt(canvasLeases.expiresAt, sql`now()`)
-          ),
-        })
-        .returning({ canvasId: canvasLeases.canvasId })
-      if (claimed.length === 0) return false
+      if (!(await claim(canvasId))) return false
       held.add(canvasId)
       return true
     },

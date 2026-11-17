@@ -24,7 +24,7 @@ interface CanvasDocument {
 
 /** Where the canvas owner runs, or null when this instance should serve it. */
 async function remoteOwner(canvasId: string): Promise<string | null> {
-  const location = await getPlacement()?.locate(canvasId)
+  const location = await getPlacement()?.route(canvasId)
   return location?.kind === "remote" ? location.url : null
 }
 

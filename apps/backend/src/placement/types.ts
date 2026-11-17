@@ -24,8 +24,12 @@ export interface Cluster {
 export type CanvasLocation = { kind: "local" } | { kind: "remote"; url: string }
 
 export interface CanvasPlacement {
-  /** Read-only lookup. Never claims ownership. */
-  locate(canvasId: string): Promise<CanvasLocation>
+  /**
+   * Decide where to serve a canvas, before opening it locally. Claims the canvas
+   * when nobody live owns it, atomically, so two instances opening the same free
+   * canvas at once agree on one owner. "local" means this instance should load it.
+   */
+  route(canvasId: string): Promise<CanvasLocation>
   /** Claim ownership before loading. False when another live owner holds the canvas. */
   acquire(canvasId: string): Promise<boolean>
   /**

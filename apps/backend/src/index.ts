@@ -41,7 +41,7 @@ async function openPeer(
   canvasId: string,
   token: string | undefined
 ): Promise<Peer> {
-  const location = await getPlacement()?.locate(canvasId)
+  const location = await getPlacement()?.route(canvasId)
   if (location?.kind === "remote") {
     return relayToOwner(
       socket,
@@ -138,8 +138,11 @@ const app = new Elysia()
       const { params, query, request } = ws.data
       const token = query.token ?? request.headers.get("Authorization") ?? undefined
       const peer = openPeer(ws.raw, request, params.canvasId, token)
-      // Rejections are reported by the socket close; keep them from surfacing as unhandled
-      peer.catch(() => {})
+      // Close with 1011 so the client reconnects; a socket the relay already closed ignores it
+      peer.catch((error: unknown) => {
+        logger.warn({ canvasId: params.canvasId, error: String(error) }, "Could not open canvas")
+        ws.raw.close(1011, "Could not open canvas")
+      })
       peers.set(ws.raw, peer)
     },
     message(ws, message) {

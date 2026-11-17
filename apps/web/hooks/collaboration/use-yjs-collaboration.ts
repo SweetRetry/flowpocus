@@ -145,7 +145,7 @@ export function useYjsCollaboration(
 
   /**
    * Handle edge changes from React Flow
-   * Uses Edge[] type to accept edges from addEdge() and applyEdgeChanges()
+   * Uses Edge[] type to accept edges from addEdge() and changes.applyTo()
    */
   const updateEdges = useCallback((newEdges: Edge[]) => {
     // Update React state immediately for responsive UI

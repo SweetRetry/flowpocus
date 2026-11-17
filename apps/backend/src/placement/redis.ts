@@ -31,7 +31,7 @@ export function createRedisCluster({
 
   return {
     placement: {
-      locate: async () => ({ kind: "local" }),
+      route: async () => ({ kind: "local" }),
       acquire: async () => true,
       // The extension's Redlock serialises stores across instances
       fence: () => undefined,
